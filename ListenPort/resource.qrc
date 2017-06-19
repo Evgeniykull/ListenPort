@@ -1,0 +1,12 @@
+<RCC>
+    <qresource prefix="/pict">
+        <file>pict/read.png</file>
+        <file>pict/read_data.png</file>
+        <file>pict/write_data.png</file>
+        <file>pict/save_data.png</file>
+        <file>pict/compare.png</file>
+        <file>pict/firmware.png</file>
+        <file>pict/settings.png</file>
+        <file>pict/exchange.png</file>
+    </qresource>
+</RCC>

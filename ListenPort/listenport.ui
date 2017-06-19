@@ -1,0 +1,404 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>ListenPort</class>
+ <widget class="QMainWindow" name="ListenPort">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>750</width>
+    <height>608</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>ListenPort</string>
+  </property>
+  <widget class="QWidget" name="centralWidget">
+   <layout class="QGridLayout" name="gridLayout">
+    <item row="0" column="0">
+     <widget class="QTabWidget" name="tabWidget">
+      <property name="currentIndex">
+       <number>1</number>
+      </property>
+      <widget class="QWidget" name="tab">
+       <attribute name="title">
+        <string>Tab 1</string>
+       </attribute>
+       <layout class="QGridLayout" name="gridLayout_3">
+        <item row="0" column="0">
+         <widget class="QGroupBox" name="grBoxSettings">
+          <property name="title">
+           <string>Settings</string>
+          </property>
+          <layout class="QFormLayout" name="formLayout">
+           <item row="0" column="0">
+            <widget class="QLabel" name="lblPort">
+             <property name="text">
+              <string>Port</string>
+             </property>
+            </widget>
+           </item>
+           <item row="0" column="1">
+            <widget class="QComboBox" name="cbPortName"/>
+           </item>
+           <item row="1" column="0">
+            <widget class="QLabel" name="lblBaudRate">
+             <property name="text">
+              <string>Baud Rate</string>
+             </property>
+            </widget>
+           </item>
+           <item row="1" column="1">
+            <widget class="QComboBox" name="cbBaudRate"/>
+           </item>
+           <item row="2" column="0">
+            <widget class="QLabel" name="lblDataBits">
+             <property name="text">
+              <string>Data Bits</string>
+             </property>
+            </widget>
+           </item>
+           <item row="2" column="1">
+            <widget class="QComboBox" name="cbDataBist"/>
+           </item>
+           <item row="3" column="0">
+            <widget class="QLabel" name="lblPairity">
+             <property name="text">
+              <string>Pairity</string>
+             </property>
+            </widget>
+           </item>
+           <item row="3" column="1">
+            <widget class="QComboBox" name="cbPairity"/>
+           </item>
+           <item row="4" column="0">
+            <widget class="QLabel" name="lblStopBits">
+             <property name="text">
+              <string>Stop Bits</string>
+             </property>
+            </widget>
+           </item>
+           <item row="4" column="1">
+            <widget class="QComboBox" name="cbStopBits"/>
+           </item>
+           <item row="5" column="0">
+            <widget class="QLabel" name="lblFlowControl">
+             <property name="text">
+              <string>Flow Control</string>
+             </property>
+            </widget>
+           </item>
+           <item row="5" column="1">
+            <widget class="QComboBox" name="cbFlowControl"/>
+           </item>
+           <item row="6" column="0">
+            <widget class="QLabel" name="lblAddres">
+             <property name="text">
+              <string>Addres</string>
+             </property>
+            </widget>
+           </item>
+           <item row="6" column="1">
+            <widget class="QLineEdit" name="leAddres">
+             <property name="text">
+              <string>0</string>
+             </property>
+             <property name="frame">
+              <bool>true</bool>
+             </property>
+             <property name="dragEnabled">
+              <bool>false</bool>
+             </property>
+             <property name="clearButtonEnabled">
+              <bool>false</bool>
+             </property>
+            </widget>
+           </item>
+           <item row="7" column="0" colspan="2">
+            <widget class="QPushButton" name="pbConfigurate">
+             <property name="text">
+              <string>Configurate</string>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </widget>
+        </item>
+       </layout>
+      </widget>
+      <widget class="QWidget" name="tab_2">
+       <attribute name="title">
+        <string>Tab 2</string>
+       </attribute>
+       <layout class="QGridLayout" name="gridLayout_2">
+        <item row="0" column="0">
+         <widget class="QTreeWidget" name="treeWidget">
+          <column>
+           <property name="text">
+            <string>Key</string>
+           </property>
+          </column>
+          <column>
+           <property name="text">
+            <string>Values</string>
+           </property>
+          </column>
+         </widget>
+        </item>
+        <item row="0" column="1">
+         <widget class="QTextEdit" name="teInfo"/>
+        </item>
+       </layout>
+      </widget>
+      <widget class="QWidget" name="tab_3">
+       <attribute name="title">
+        <string>Страница</string>
+       </attribute>
+       <layout class="QGridLayout" name="gridLayout_4">
+        <item row="0" column="1">
+         <widget class="QTextEdit" name="teInfo_2"/>
+        </item>
+        <item row="0" column="0">
+         <widget class="QTreeWidget" name="treeWidget_2">
+          <column>
+           <property name="text">
+            <string>Key</string>
+           </property>
+          </column>
+          <column>
+           <property name="text">
+            <string>Values</string>
+           </property>
+          </column>
+         </widget>
+        </item>
+       </layout>
+      </widget>
+      <widget class="QWidget" name="tab_4">
+       <attribute name="title">
+        <string>Страница</string>
+       </attribute>
+       <layout class="QGridLayout" name="gridLayout_5">
+        <item row="0" column="0">
+         <widget class="QTableView" name="tableView"/>
+        </item>
+       </layout>
+      </widget>
+     </widget>
+    </item>
+   </layout>
+  </widget>
+  <widget class="QMenuBar" name="menuBar">
+   <property name="geometry">
+    <rect>
+     <x>0</x>
+     <y>0</y>
+     <width>750</width>
+     <height>21</height>
+    </rect>
+   </property>
+   <widget class="QMenu" name="menuFile">
+    <property name="title">
+     <string>Файл</string>
+    </property>
+    <addaction name="actionExit"/>
+   </widget>
+   <widget class="QMenu" name="menuPort">
+    <property name="title">
+     <string>Port</string>
+    </property>
+    <addaction name="actionOpen_port"/>
+    <addaction name="actionClose_port"/>
+   </widget>
+   <addaction name="menuFile"/>
+   <addaction name="menuPort"/>
+  </widget>
+  <widget class="QToolBar" name="mainToolBar">
+   <attribute name="toolBarArea">
+    <enum>TopToolBarArea</enum>
+   </attribute>
+   <attribute name="toolBarBreak">
+    <bool>false</bool>
+   </attribute>
+   <addaction name="actRead"/>
+   <addaction name="actWrite"/>
+   <addaction name="actSave"/>
+   <addaction name="actReadFormFile"/>
+   <addaction name="actCompare"/>
+   <addaction name="actFirmware"/>
+   <addaction name="separator"/>
+   <addaction name="actSettings"/>
+   <addaction name="actChangeParams"/>
+   <addaction name="actParams"/>
+   <addaction name="actExchange"/>
+   <addaction name="actWriteCatalog"/>
+  </widget>
+  <widget class="QStatusBar" name="statusBar"/>
+  <action name="actRead">
+   <property name="icon">
+    <iconset resource="resource.qrc">
+     <normaloff>:/pict/pict/read.png</normaloff>:/pict/pict/read.png</iconset>
+   </property>
+   <property name="text">
+    <string>Считать</string>
+   </property>
+   <property name="toolTip">
+    <string>Считать данные с утройства</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+R</string>
+   </property>
+  </action>
+  <action name="actWrite">
+   <property name="icon">
+    <iconset resource="resource.qrc">
+     <normaloff>:/pict/pict/write_data.png</normaloff>:/pict/pict/write_data.png</iconset>
+   </property>
+   <property name="text">
+    <string>Записать</string>
+   </property>
+   <property name="toolTip">
+    <string>Записать данные в устройство</string>
+   </property>
+  </action>
+  <action name="actSave">
+   <property name="icon">
+    <iconset resource="resource.qrc">
+     <normaloff>:/pict/pict/save_data.png</normaloff>:/pict/pict/save_data.png</iconset>
+   </property>
+   <property name="text">
+    <string>Сохранить</string>
+   </property>
+   <property name="toolTip">
+    <string>Сохранить в файл</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+S</string>
+   </property>
+  </action>
+  <action name="actReadFormFile">
+   <property name="icon">
+    <iconset resource="resource.qrc">
+     <normaloff>:/pict/pict/read_data.png</normaloff>:/pict/pict/read_data.png</iconset>
+   </property>
+   <property name="text">
+    <string>Считать</string>
+   </property>
+   <property name="toolTip">
+    <string>Считать данные из файла</string>
+   </property>
+  </action>
+  <action name="actCompare">
+   <property name="icon">
+    <iconset resource="resource.qrc">
+     <normaloff>:/pict/pict/compare.png</normaloff>:/pict/pict/compare.png</iconset>
+   </property>
+   <property name="text">
+    <string>Сравнить</string>
+   </property>
+   <property name="toolTip">
+    <string>Сравнить Settings в программе и устройстве</string>
+   </property>
+  </action>
+  <action name="actFirmware">
+   <property name="icon">
+    <iconset resource="resource.qrc">
+     <normaloff>:/pict/pict/firmware.png</normaloff>:/pict/pict/firmware.png</iconset>
+   </property>
+   <property name="text">
+    <string>Прошивка</string>
+   </property>
+   <property name="toolTip">
+    <string>Прошивка устройства</string>
+   </property>
+  </action>
+  <action name="actionExit">
+   <property name="text">
+    <string>Выход</string>
+   </property>
+  </action>
+  <action name="actSettings">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="icon">
+    <iconset resource="resource.qrc">
+     <normaloff>:/pict/pict/settings.png</normaloff>:/pict/pict/settings.png</iconset>
+   </property>
+   <property name="text">
+    <string>Настройки</string>
+   </property>
+   <property name="toolTip">
+    <string>Определение настроек порта</string>
+   </property>
+  </action>
+  <action name="actChangeParams">
+   <property name="text">
+    <string>Settings</string>
+   </property>
+   <property name="toolTip">
+    <string>Редактирование параметров Settings</string>
+   </property>
+  </action>
+  <action name="actParams">
+   <property name="text">
+    <string>Info</string>
+   </property>
+   <property name="toolTip">
+    <string>Текущие параметры устройства</string>
+   </property>
+  </action>
+  <action name="actExchange">
+   <property name="icon">
+    <iconset resource="resource.qrc">
+     <normaloff>:/pict/pict/exchange.png</normaloff>:/pict/pict/exchange.png</iconset>
+   </property>
+   <property name="text">
+    <string>Обмен данными</string>
+   </property>
+   <property name="toolTip">
+    <string>Отображает обмен на уровне пакетов</string>
+   </property>
+  </action>
+  <action name="actionOpen_port">
+   <property name="text">
+    <string>Open port</string>
+   </property>
+  </action>
+  <action name="actionClose_port">
+   <property name="text">
+    <string>Close port</string>
+   </property>
+  </action>
+  <action name="actionChangeRow">
+   <property name="text">
+    <string>Change row</string>
+   </property>
+  </action>
+  <action name="actionAddRow">
+   <property name="text">
+    <string>Add row</string>
+   </property>
+  </action>
+  <action name="actionDeleteRow">
+   <property name="text">
+    <string>Delete row</string>
+   </property>
+  </action>
+  <action name="actionAddChildrenRow">
+   <property name="text">
+    <string>Add children row</string>
+   </property>
+  </action>
+  <action name="actWriteCatalog">
+   <property name="text">
+    <string>Записать каталог</string>
+   </property>
+  </action>
+ </widget>
+ <layoutdefault spacing="6" margin="11"/>
+ <resources>
+  <include location="resource.qrc"/>
+ </resources>
+ <connections/>
+</ui>
