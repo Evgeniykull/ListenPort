@@ -9,7 +9,7 @@
 #include <QTreeWidgetItem>
 #include <QJsonDocument>
 #include "changesettingswindow.h"
-
+#include "utils/catalogswrither.h"
 
 namespace Ui {
 class ListenPort;
@@ -88,7 +88,6 @@ private:
     QJsonDocument mDocument;
     void generateTree(std::string json);
     int tab;
-
 };
 
 #endif // LISTENPORT_H

@@ -13,8 +13,6 @@
 #include <QJsonArray>
 #include <QMenu>
 #include <QFileDialog>
-#include <QDir>
-#include <stdlib.h>
 
 
 ListenPort::ListenPort(QWidget *parent) :
@@ -64,123 +62,9 @@ ListenPort::~ListenPort()
     delete ui;
 }
 
-//проблемы с длинной
-void ListenPort::writeCatalog() { //можно вынести в отдельный класс
-    QString dir_path = QFileDialog::getExistingDirectory(this,
-            tr("Select catalog"), "",
-            QFileDialog::ShowDirsOnly);
-    if (dir_path.isEmpty()) return;
-
-    QDir dir(dir_path);
-    if (!dir.exists()) return;
-    dir.setFilter(QDir::Files | QDir::NoSymLinks);
-    dir.setSorting(QDir::Name);
-    QFileInfoList files_list = dir.entryInfoList();
-
-    std::vector<QString> name_mass;
-    std::vector<QString> type_mass;
-    std::vector<QString> len_mass;
-    std::vector<QString> addr_mass;
-    std::vector<QString> data_mass;
-    for (int i = 0; i < files_list.size(); ++i)
-    {
-        QFileInfo fileInfo = files_list.at(i);
-        QString file_name = fileInfo.fileName();
-
-        //type
-        int pos = file_name.lastIndexOf(".");
-        if (pos != -1) {
-            QString file_type = file_name.right(file_name.length() - pos - 1);
-            if (file_type.length() > 4) {
-                file_type = file_type.left(4);
-            } else if (file_type.length() < 4) {
-                for (int i = file_type.length(); i < 4; i++) {
-                    file_type.append("0");
-                }
-            }
-            type_mass.push_back(file_type);
-        } else {
-            QString file_type = "0000";
-            type_mass.push_back(file_type);
-        }
-
-        //name
-        file_name = file_name.left(pos);
-        if (file_name.length() > 18) {
-            file_name = file_name.left(19);
-        } else if (file_name.length() < 18) {
-            for (int i = file_name.length(); i < 19; i++) {
-                file_name.append("0");
-           }
-        }
-        file_name.append("0");
-        name_mass.push_back(file_name);
-
-        //len
-        //длина должна быть из 4х символов!
-        QString file_len = QString::number(fileInfo.size());
-        if (file_len.length() > 4) {
-            file_len = "0000";
-        } else if (file_len.length() < 4) {
-            for (int i = file_len.length(); i < 4; i++) {
-                file_len.insert(0, "0");
-            }
-        }
-        len_mass.push_back(file_len);
-
-        //addr
-        //если файлы будут большие - возникнут проблемы
-        QString addr;
-        long abs_addr;
-        if (i == 0) {
-            addr = QString::number(files_list.size() * 32);
-        } else {
-            abs_addr = addr_mass[i-1].toDouble() + len_mass[i-1].toDouble();
-            addr = QString::number(abs_addr);
-        }
-
-        if (addr.length() > 4) {
-            addr = "0000";
-        } else if (addr.length() < 4) {
-            QString new_addr;
-            for (int j = 0; j < 4 - addr.length(); j++) {
-                new_addr += "0";
-            }
-            new_addr += addr;
-            addr = new_addr;
-        }
-        addr_mass.push_back(addr);
-
-        //собираем данные
-        QString data_part;
-        data_part += addr_mass[i];
-        data_part += len_mass[i];
-        data_part += type_mass[i];
-        data_part += name_mass[i];
-        data_part += "0";
-        data_mass.push_back(data_part);
-    }
-    //записать файлы в память
-
-    QFile file("data.cat");
-    if (!file.open(QIODevice::WriteOnly))
-    {
-        qDebug() << "Ошибка при открытии файла";
-    }
-    for (int i = 0; i < data_mass.size(); i++) { //запись информации
-        file.write(data_mass[i].toStdString().c_str());
-    }
-    for (int i = 0; i < files_list.size(); ++i) { //запись данных
-        QString path = files_list.at(i).absoluteFilePath();
-        QFile *f = new QFile(path);
-        if (!f->open(QIODevice::ReadOnly))
-        {
-            qDebug() << "Ошибка при открытии файла в каталоге";
-        }
-        QByteArray ba = f->readAll();
-        file.write(ba);
-    }
-    file.close();
+void ListenPort::writeCatalog() {
+    catalogswrither catalog;
+    catalog.writeCatalogToFile();
 }
 
 void ListenPort::saveInFile() {
