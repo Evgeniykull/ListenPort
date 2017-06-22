@@ -232,6 +232,7 @@
    <addaction name="actParams"/>
    <addaction name="actExchange"/>
    <addaction name="actWriteCatalog"/>
+   <addaction name="actGetCatalog"/>
   </widget>
   <widget class="QStatusBar" name="statusBar"/>
   <action name="actRead">
@@ -393,6 +394,11 @@
   <action name="actWriteCatalog">
    <property name="text">
     <string>Записать каталог</string>
+   </property>
+  </action>
+  <action name="actGetCatalog">
+   <property name="text">
+    <string>Получить каталог</string>
    </property>
   </action>
  </widget>

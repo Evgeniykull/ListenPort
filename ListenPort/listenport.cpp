@@ -55,6 +55,7 @@ ListenPort::ListenPort(QWidget *parent) :
     connect(ui->actSave, SIGNAL(triggered()), this, SLOT(saveInFile())); //save in file
     connect(ui->actReadFormFile, SIGNAL(triggered()), this, SLOT(readFromFile())); //read from file
     connect(ui->actWriteCatalog, SIGNAL(triggered()), this, SLOT(writeCatalog()));
+    connect(ui->actGetCatalog, SIGNAL(triggered()), this, SLOT(getCatalog()));
 }
 
 ListenPort::~ListenPort()
@@ -65,6 +66,11 @@ ListenPort::~ListenPort()
 void ListenPort::writeCatalog() {
     catalogswrither catalog;
     catalog.writeCatalogToFile();
+}
+
+void ListenPort::getCatalog() {
+    catalogswrither catalog;
+    catalog.getCatalogByFile();
 }
 
 void ListenPort::saveInFile() {

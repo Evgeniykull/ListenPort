@@ -7,6 +7,7 @@ class catalogswrither
 public:
     catalogswrither();
     void writeCatalogToFile();
+    void getCatalogByFile();
 };
 
 #endif // CATALOGSWRITHER_H

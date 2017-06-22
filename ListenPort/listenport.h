@@ -62,6 +62,7 @@ private slots:
     void readFromFile();
 
     void writeCatalog();
+    void getCatalog();
 
 private:
     Ui::ListenPort *ui;
