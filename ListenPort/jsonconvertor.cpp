@@ -2,7 +2,7 @@
 #include <QString>
 #include <QTextCodec>
 #include <vector>
-#include <QDebug>
+
 
 using namespace std;
 

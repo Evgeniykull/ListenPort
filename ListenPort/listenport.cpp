@@ -56,6 +56,7 @@ ListenPort::ListenPort(QWidget *parent) :
     connect(ui->actReadFormFile, SIGNAL(triggered()), this, SLOT(readFromFile())); //read from file
     connect(ui->actWriteCatalog, SIGNAL(triggered()), this, SLOT(writeCatalog()));
     connect(ui->actGetCatalog, SIGNAL(triggered()), this, SLOT(getCatalog()));
+    connect(ui->actWriteCatalogToDevice,SIGNAL(triggered()), this, SLOT(writeCatalogToDevice()));
 }
 
 ListenPort::~ListenPort()
@@ -65,12 +66,41 @@ ListenPort::~ListenPort()
 
 void ListenPort::writeCatalog() {
     catalogswrither catalog;
-    catalog.writeCatalogToFile();
+    QByteArray catalog_data = catalog.prepearFile();
+    catalog.writeCatalogToFile(catalog_data);
 }
 
 void ListenPort::getCatalog() {
     catalogswrither catalog;
     catalog.getCatalogByFile();
+}
+
+void ListenPort::writeCatalogToDevice() {
+    if (!port->isOpen()) {
+        QMessageBox::information(0, QObject::tr("Can not write to device"), QObject::tr("Port closed"));
+        return;
+    }
+
+    catalogswrither catalog;
+    QByteArray catalog_data = catalog.prepearFile();
+    int catalog_data_len = catalog_data.length();
+    int count = 0;
+    QByteArray lbl_settings;
+
+    while (catalog_data_len / 256 >= 0) {
+        int len = (catalog_data_len - count*256) >= 256 ? 256 : len; // нужно ли?
+        if (len <= 0) return;
+        QByteArray mid_data = catalog_data.mid(count*256, len);
+        QString quots = "\"";
+        QByteArray quotes = quots.toLatin1();
+        lbl_settings = "set Memory1[" + QByteArray::number(count) + "]:{" +
+                        "Data:" + quotes + mid_data.toHex() + "0x00" + quotes + "}";
+        count++;
+        if(writeData(lbl_settings)) {
+            break;
+        }
+        catalog_data_len = catalog_data_len / 256;
+    }
 }
 
 void ListenPort::saveInFile() {
@@ -239,7 +269,7 @@ void ListenPort::onParamsClick() {
     last_index = 2;
     ui->tabWidget->setCurrentIndex(2);
     if (port->isOpen()) {
-        QString lbl_settings = "get Info";
+        QByteArray lbl_settings = "get Info";
         tab = 2;
         writeData(lbl_settings);
     }
@@ -249,7 +279,7 @@ void ListenPort::onChangeParamsClick() {
     last_index = 1;
     ui->tabWidget->setCurrentIndex(1);
     if (port->isOpen()) {
-        QString lbl_settings = "get Settings";
+        QByteArray lbl_settings = "get Settings";
         tab = 1;
         writeData(lbl_settings);
     }
@@ -392,20 +422,20 @@ void delay(int num) //для ожидания, пока идет чтение
         QCoreApplication::processEvents(QEventLoop::AllEvents, 100);
 }
 
-void ListenPort::writeData(QString text)
+int ListenPort::writeData(QByteArray text)
 {
     if (transfer_data) {
-        return;
+        return 1;
     } else {
         transfer_data = true;
     }
 
     //Подготавливаем данные
-    QByteArray data = text.toLatin1();
+    QByteArray data = text;
     int data_len = data.length();
     if (data_len == 0) {
         ui->teInfo->setText("No data to send");
-        return;
+        return 1;
     }
 
     int iter;
@@ -444,7 +474,7 @@ void ListenPort::writeData(QString text)
             int size = buff[2] + 7;
             QByteArray tr_data = QByteArray((char *)buff, size);
             port->write(tr_data);
-            if (port->waitForBytesWritten(20)) {
+            if (port->waitForBytesWritten(200)) {
                 //прием файла
                 if (port->waitForReadyRead(100)) {
                     rd_data.append(port->read(8));
@@ -477,7 +507,7 @@ void ListenPort::writeData(QString text)
                 ui->teInfo_2->setText("Обмен завершен с ошибкой 0x" + QString("%1").arg(errcode, 0, 16).toUpper());
             //break;
             transfer_data = false;
-            return;
+            return 1;
         }
         //Обмен завершен успешно
         tranz_num++;
@@ -622,6 +652,7 @@ void ListenPort::writeData(QString text)
         (tab == 1) ? ui->teInfo->setText("Ошибка обмена") :
                 ui->teInfo_2->setText("Ошибка обмена");
     }
+    return 0;
 }
 
 void ListenPort::dataToJson(QByteArray data) {
@@ -634,6 +665,9 @@ void ListenPort::openPort()
 {
     writePortSettings();
     port->setPortName(SettingsPort.name);
+    if(port->isOpen()) {
+        return;
+    }
     if (port->open(QIODevice::ReadWrite)) {
         if (port->setBaudRate(SettingsPort.baudRate)
                 && port->setDataBits(SettingsPort.dataBits)

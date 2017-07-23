@@ -17,8 +17,14 @@
    <layout class="QGridLayout" name="gridLayout">
     <item row="0" column="0">
      <widget class="QTabWidget" name="tabWidget">
+      <property name="tabShape">
+       <enum>QTabWidget::Triangular</enum>
+      </property>
       <property name="currentIndex">
        <number>1</number>
+      </property>
+      <property name="usesScrollButtons">
+       <bool>true</bool>
       </property>
       <widget class="QWidget" name="tab">
        <attribute name="title">
@@ -205,13 +211,30 @@
    </widget>
    <widget class="QMenu" name="menuPort">
     <property name="title">
-     <string>Port</string>
+     <string>Порт</string>
     </property>
     <addaction name="actionOpen_port"/>
     <addaction name="actionClose_port"/>
    </widget>
+   <widget class="QMenu" name="menu">
+    <property name="title">
+     <string>Работа с каталогом</string>
+    </property>
+    <addaction name="actWriteCatalog"/>
+    <addaction name="actGetCatalog"/>
+    <addaction name="actWriteCatalogToDevice"/>
+   </widget>
+   <widget class="QMenu" name="menu_2">
+    <property name="title">
+     <string>Данные</string>
+    </property>
+    <addaction name="actSave"/>
+    <addaction name="actReadFormFile"/>
+   </widget>
    <addaction name="menuFile"/>
    <addaction name="menuPort"/>
+   <addaction name="menu_2"/>
+   <addaction name="menu"/>
   </widget>
   <widget class="QToolBar" name="mainToolBar">
    <attribute name="toolBarArea">
@@ -222,8 +245,6 @@
    </attribute>
    <addaction name="actRead"/>
    <addaction name="actWrite"/>
-   <addaction name="actSave"/>
-   <addaction name="actReadFormFile"/>
    <addaction name="actCompare"/>
    <addaction name="actFirmware"/>
    <addaction name="separator"/>
@@ -231,8 +252,6 @@
    <addaction name="actChangeParams"/>
    <addaction name="actParams"/>
    <addaction name="actExchange"/>
-   <addaction name="actWriteCatalog"/>
-   <addaction name="actGetCatalog"/>
   </widget>
   <widget class="QStatusBar" name="statusBar"/>
   <action name="actRead">
@@ -283,7 +302,7 @@
      <normaloff>:/pict/pict/read_data.png</normaloff>:/pict/pict/read_data.png</iconset>
    </property>
    <property name="text">
-    <string>Считать</string>
+    <string>Загрузить</string>
    </property>
    <property name="toolTip">
     <string>Считать данные из файла</string>
@@ -393,12 +412,17 @@
   </action>
   <action name="actWriteCatalog">
    <property name="text">
-    <string>Записать каталог</string>
+    <string>Записать каталог в файл</string>
    </property>
   </action>
   <action name="actGetCatalog">
    <property name="text">
-    <string>Получить каталог</string>
+    <string>Получить каталог из файла</string>
+   </property>
+  </action>
+  <action name="actWriteCatalogToDevice">
+   <property name="text">
+    <string>Записать каталог на устройство</string>
    </property>
   </action>
  </widget>

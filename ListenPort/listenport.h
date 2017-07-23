@@ -41,7 +41,7 @@ private slots:
     void changePort(QString name);
     void openPort();
     void closePort();
-    void writeData(QString text);
+    int writeData(QByteArray text);
     void writePortSettings();//доработать
     void checkCustomBaudRatePolicy(int idx);
 
@@ -63,6 +63,7 @@ private slots:
 
     void writeCatalog();
     void getCatalog();
+    void writeCatalogToDevice();
 
 private:
     Ui::ListenPort *ui;
