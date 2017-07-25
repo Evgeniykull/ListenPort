@@ -5,6 +5,7 @@
 #include <QFileDialog>
 #include <QObject>
 #include <QMessageBox>
+#include <QInputDialog>
 #include <vector>
 
 
@@ -147,8 +148,7 @@ QByteArray catalogswrither::prepearFile() {
     for (int i = 0; i < files_list.size(); ++i) {
         QString path = files_list.at(i).absoluteFilePath();
         QFile f(path);
-        if (!f.open(QIODevice::ReadOnly))
-        {
+        if (!f.open(QIODevice::ReadOnly)) {
             QMessageBox::information(0, QObject::tr("Ошибка при создания файла"), "Ошибка при открытии файла в каталоге");
         }
         QByteArray ba;
@@ -163,9 +163,13 @@ QByteArray catalogswrither::prepearFile() {
 
 void catalogswrither::writeCatalogToFile(QByteArray data) {
     //добавить ввод имени файла
-    QFile file("data.bin");
-    if (!file.open(QIODevice::WriteOnly))
-    {
+    bool ok;
+    QString file_name = QInputDialog::getText(0, "Input name", "Input bin file name:",
+                                              QLineEdit::Normal, "", &ok);
+    if (!ok) return;
+
+    QFile file(file_name + ".bin");
+    if (!file.open(QIODevice::WriteOnly)) {
         QMessageBox::information(0, QObject::tr("Ошибка при записи каталога"), "Ошибка при создании файла");
     }
 

@@ -121,9 +121,9 @@
             </widget>
            </item>
            <item row="7" column="0" colspan="2">
-            <widget class="QPushButton" name="pbConfigurate">
+            <widget class="QPushButton" name="pbSavePortSettings">
              <property name="text">
-              <string>Configurate</string>
+              <string>Save</string>
              </property>
             </widget>
            </item>
@@ -151,8 +151,12 @@
           </column>
          </widget>
         </item>
-        <item row="0" column="1">
-         <widget class="QTextEdit" name="teInfo"/>
+        <item row="1" column="0">
+         <widget class="QPushButton" name="pbUpdateSettings">
+          <property name="text">
+           <string>Update</string>
+          </property>
+         </widget>
         </item>
        </layout>
       </widget>
@@ -161,10 +165,7 @@
         <string>Страница</string>
        </attribute>
        <layout class="QGridLayout" name="gridLayout_4">
-        <item row="0" column="1">
-         <widget class="QTextEdit" name="teInfo_2"/>
-        </item>
-        <item row="0" column="0">
+        <item row="1" column="0">
          <widget class="QTreeWidget" name="treeWidget_2">
           <column>
            <property name="text">
@@ -176,6 +177,13 @@
             <string>Values</string>
            </property>
           </column>
+         </widget>
+        </item>
+        <item row="2" column="0">
+         <widget class="QPushButton" name="pbUpdateInfo">
+          <property name="text">
+           <string>Update</string>
+          </property>
          </widget>
         </item>
        </layout>
@@ -209,20 +217,14 @@
     </property>
     <addaction name="actionExit"/>
    </widget>
-   <widget class="QMenu" name="menuPort">
-    <property name="title">
-     <string>Порт</string>
-    </property>
-    <addaction name="actionOpen_port"/>
-    <addaction name="actionClose_port"/>
-   </widget>
    <widget class="QMenu" name="menu">
     <property name="title">
      <string>Работа с каталогом</string>
     </property>
     <addaction name="actWriteCatalog"/>
     <addaction name="actGetCatalog"/>
-    <addaction name="actWriteCatalogToDevice"/>
+    <addaction name="actWriteFileToDevice"/>
+    <addaction name="actReadFileFromDevice"/>
    </widget>
    <widget class="QMenu" name="menu_2">
     <property name="title">
@@ -232,7 +234,6 @@
     <addaction name="actReadFormFile"/>
    </widget>
    <addaction name="menuFile"/>
-   <addaction name="menuPort"/>
    <addaction name="menu_2"/>
    <addaction name="menu"/>
   </widget>
@@ -420,9 +421,14 @@
     <string>Получить каталог из файла</string>
    </property>
   </action>
-  <action name="actWriteCatalogToDevice">
+  <action name="actWriteFileToDevice">
    <property name="text">
-    <string>Записать каталог на устройство</string>
+    <string>Записать файл на устройство</string>
+   </property>
+  </action>
+  <action name="actReadFileFromDevice">
+   <property name="text">
+    <string>Получить файл из устройства</string>
    </property>
   </action>
  </widget>

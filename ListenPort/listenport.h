@@ -63,7 +63,11 @@ private slots:
 
     void writeCatalog();
     void getCatalog();
-    void writeCatalogToDevice();
+    void writeFileToDevice();
+    void readFileFromDevice();
+
+    void updateSettings();
+    void updateInfo();
 
 private:
     Ui::ListenPort *ui;
@@ -80,6 +84,7 @@ private:
 
     void addValueToSettings();
     void setSavingParams();
+    void getPortSettingsFromFile();
 
     //для вывода json в графику (вынести в отдельный класс)
     ChangeSettingsWindow * change_sett_wind;

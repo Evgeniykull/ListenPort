@@ -30,16 +30,14 @@ ListenPort::ListenPort(QWidget *parent) :
 
     connect(ui->actionExit, SIGNAL(triggered()), this, SLOT(close()));
     connect(ui->actSettings, SIGNAL(triggered(bool)), this, SLOT(onSettingsClick(bool)));
+
     connect(ui->actParams, SIGNAL(triggered()), this, SLOT(onParamsClick()));
     connect(ui->actChangeParams, SIGNAL(triggered()), this, SLOT(onChangeParamsClick()));
+    connect(ui->pbUpdateInfo, SIGNAL(clicked(bool)), this, SLOT(updateInfo()));
+    connect(ui->pbUpdateSettings, SIGNAL(clicked(bool)), this, SLOT(updateSettings()));
 
     connect(ui->cbPortName, SIGNAL(currentTextChanged(QString)), this, SLOT(changePort(QString)));
-
-    connect(ui->actionOpen_port, SIGNAL(triggered()), this, SLOT(openPort()));
-    connect(ui->actionClose_port, SIGNAL(triggered()), this, SLOT(closePort()));
-    connect(ui->pbConfigurate, SIGNAL(clicked()), this, SLOT(writePortSettings()));
-    getPortsInfo();
-    setSavingParams();
+    connect(ui->pbSavePortSettings, SIGNAL(clicked()), this, SLOT(writePortSettings())); //поменять вызов
 
     connect(ui->actionChangeRow, SIGNAL(triggered()), this, SLOT(changeRowTree()));
     connect(ui->actionAddRow, SIGNAL(triggered()), this, SLOT(addRowTree()));
@@ -56,7 +54,11 @@ ListenPort::ListenPort(QWidget *parent) :
     connect(ui->actReadFormFile, SIGNAL(triggered()), this, SLOT(readFromFile())); //read from file
     connect(ui->actWriteCatalog, SIGNAL(triggered()), this, SLOT(writeCatalog()));
     connect(ui->actGetCatalog, SIGNAL(triggered()), this, SLOT(getCatalog()));
-    connect(ui->actWriteCatalogToDevice,SIGNAL(triggered()), this, SLOT(writeCatalogToDevice()));
+    connect(ui->actWriteFileToDevice,SIGNAL(triggered()), this, SLOT(writeFileToDevice()));
+    connect(ui->actReadFileFromDevice,SIGNAL(triggered()), this, SLOT(readFileFromDevice()));
+
+    getPortsInfo();
+    getPortSettingsFromFile();
 }
 
 ListenPort::~ListenPort()
@@ -75,14 +77,30 @@ void ListenPort::getCatalog() {
     catalog.getCatalogByFile();
 }
 
-void ListenPort::writeCatalogToDevice() {
+void ListenPort::writeFileToDevice() {
+    openPort();
     if (!port->isOpen()) {
         QMessageBox::information(0, QObject::tr("Can not write to device"), QObject::tr("Port closed"));
         return;
     }
 
-    catalogswrither catalog;
-    QByteArray catalog_data = catalog.prepearFile();
+    QString file_path = QFileDialog::getOpenFileName(
+            0,
+            QObject::tr("Select file"),
+            "/home",
+            QObject::tr("File (*.bin)"));
+    if (file_path.isEmpty()) {
+        QMessageBox::information(0, QObject::tr("Ошибка при получении каталога"), "Пустой путь к файлу");
+        return;
+    }
+
+    QFile file(file_path);
+    if (!file.open(QIODevice::ReadOnly)) {
+        QMessageBox::information(0, QObject::tr("Unable to open file"), file.errorString());
+        return;
+    }
+
+    QByteArray catalog_data = file.readAll();
     int catalog_data_len = catalog_data.length();
     int count = 0;
     QByteArray lbl_settings;
@@ -91,16 +109,20 @@ void ListenPort::writeCatalogToDevice() {
         int len = (catalog_data_len - count*256) >= 256 ? 256 : len; // нужно ли?
         if (len <= 0) return;
         QByteArray mid_data = catalog_data.mid(count*256, len);
-        QString quots = "\"";
-        QByteArray quotes = quots.toLatin1();
         lbl_settings = "set Memory1[" + QByteArray::number(count) + "]:{" +
-                        "Data:" + quotes + mid_data.toHex() + "0x00" + quotes + "}";
+                        "Data:\"" + mid_data.toHex().toUpper() + '\0' + "\"}";
         count++;
         if(writeData(lbl_settings)) {
             break;
         }
         catalog_data_len = catalog_data_len / 256;
     }
+    setToolTip("Идет обмен");
+    closePort();
+}
+
+void ListenPort::readFileFromDevice() {
+
 }
 
 void ListenPort::saveInFile() {
@@ -242,7 +264,7 @@ bool ListenPort::loadJson(const QString &json)
         return true;
     }
     QMessageBox msgBox;
-    msgBox.setText("Cannot load json to tree.");
+    msgBox.setText("Cannot load json to tree."); //to form
     msgBox.exec();
     return false;
 }
@@ -260,7 +282,7 @@ void ListenPort::buildJsonTree(QString json) {
         wid->headerItem()->setText(1, "Value");
     } else {
         QMessageBox msgBox;
-        msgBox.setText("Cannot convert json to tree.");
+        msgBox.setText("Cannot convert json to tree."); //to form
         msgBox.exec();
     }
 }
@@ -268,21 +290,41 @@ void ListenPort::buildJsonTree(QString json) {
 void ListenPort::onParamsClick() {
     last_index = 2;
     ui->tabWidget->setCurrentIndex(2);
-    if (port->isOpen()) {
-        QByteArray lbl_settings = "get Info";
-        tab = 2;
-        writeData(lbl_settings);
+    if(ui->treeWidget_2->topLevelItemCount() <= 0) { //если пусто - обновить
+        updateInfo();
     }
 }
 
 void ListenPort::onChangeParamsClick() {
     last_index = 1;
     ui->tabWidget->setCurrentIndex(1);
-    if (port->isOpen()) {
-        QByteArray lbl_settings = "get Settings";
-        tab = 1;
-        writeData(lbl_settings);
+    if(ui->treeWidget_2->topLevelItemCount() <= 0) { //если пусто - обновить
+        updateSettings();
     }
+}
+
+void ListenPort::updateInfo() {
+    openPort();
+    if (!port->isOpen()) {
+        QMessageBox::information(0, QObject::tr("Can not write to device"), QObject::tr("Port closed"));
+        return;
+    }
+    tab = 2;
+    setToolTip("Идет обмен"); //не видно!!!
+    writeData("get Info");
+    closePort();
+}
+
+void ListenPort::updateSettings() {
+    openPort();
+    if (!port->isOpen()) {
+        QMessageBox::information(0, QObject::tr("Can not write to device"), QObject::tr("Port closed"));
+        return;
+    }
+    tab = 1;
+    setToolTip("Идет обмен"); //не видно!!!
+    writeData("get Settings");
+    closePort();
 }
 
 void ListenPort::onSettingsClick(bool enab) {
@@ -294,7 +336,7 @@ void ListenPort::onSettingsClick(bool enab) {
     ui->tabWidget->setCurrentIndex(last_index);
 }
 
-void ListenPort::setSavingParams() { //установка сохраненных параметров
+void ListenPort::getPortSettingsFromFile() {
     QFile file("settings.ini");
     if (!file.open(QIODevice::ReadOnly)) {
         return;
@@ -334,6 +376,16 @@ void ListenPort::setSavingParams() { //установка сохраненных
         }
     }
     file.close();
+
+    SettingsPort.name = ui->cbPortName->itemText(ui->cbPortName->currentIndex());
+    SettingsPort.baudRate = (QSerialPort::BaudRate) ui->cbBaudRate->itemText(ui->cbBaudRate->currentIndex()).toInt();
+    SettingsPort.dataBits = (QSerialPort::DataBits) ui->cbDataBist->itemText(ui->cbDataBist->currentIndex()).toInt();
+    SettingsPort.parity = (QSerialPort::Parity) ui->cbPairity->itemText(ui->cbPairity->currentIndex()).toInt();
+    SettingsPort.stopBits = (QSerialPort::StopBits) ui->cbStopBits->itemText(ui->cbStopBits->currentIndex()).toInt();
+    SettingsPort.flowControl = (QSerialPort::FlowControl) ui->cbFlowControl->itemText(ui->cbFlowControl->currentIndex()).toInt();
+}
+
+void ListenPort::setSavingParams() {
 }
 
 void ListenPort::addValueToSettings() {
@@ -434,7 +486,6 @@ int ListenPort::writeData(QByteArray text)
     QByteArray data = text;
     int data_len = data.length();
     if (data_len == 0) {
-        ui->teInfo->setText("No data to send");
         return 1;
     }
 
@@ -503,16 +554,14 @@ int ListenPort::writeData(QByteArray text)
             if (errcode >= 0x80 && errcode != 0x88) break;
         } while (errnum < 3 && errcode != 0);
         if (errcode) {
-            (tab == 1) ? ui->teInfo->setText("Обмен завершен с ошибкой 0x" + QString("%1").arg(errcode, 0, 16).toUpper()) :
-                ui->teInfo_2->setText("Обмен завершен с ошибкой 0x" + QString("%1").arg(errcode, 0, 16).toUpper());
-            //break;
+            QMessageBox::information(0, QObject::tr("Can not write to device"),
+                    "Обмен завершен с ошибкой 0x" + QString("%1").arg(errcode, 0, 16).toUpper());
             transfer_data = false;
             return 1;
         }
         //Обмен завершен успешно
         tranz_num++;
-        (tab == 1) ? ui->teInfo->setText("Обмен завершен успешно") :
-                ui->teInfo_2->setText("Обмен завершен успешно");
+        setStatusTip("Обмен завершен успешно");
     }
 
     //Инициируем получение данных
@@ -641,16 +690,12 @@ int ListenPort::writeData(QByteArray text)
         data[data_len++] = 0;
         transfer_data = false;
         dataToJson(data);
-        QTextCodec *codec = QTextCodec::codecForName("Windows-1251");
-        (tab == 1) ? ui->teInfo->setText(codec->toUnicode(data)) :
-                ui->teInfo_2->setText(codec->toUnicode(data));
-        //JsonConvertor *convertor = new JsonConvertor();
-        //QString a = convertor->dataByTree(ui->treeWidget);
-        //ui->textEdit->setText(a);
+        //QTextCodec *codec = QTextCodec::codecForName("Windows-1251");
+        //codec->toUnicode(data);  //то, что пришло в формате читаемой строки
     } else {
         transfer_data = false;
-        (tab == 1) ? ui->teInfo->setText("Ошибка обмена") :
-                ui->teInfo_2->setText("Ошибка обмена");
+        QMessageBox::information(0, QObject::tr("Write to device"),
+                QObject::tr("Ошибка обмена"));
     }
     return 0;
 }
@@ -675,17 +720,15 @@ void ListenPort::openPort()
                 && port->setStopBits(SettingsPort.stopBits)
                 && port->setFlowControl(SettingsPort.flowControl)) {
             if (port->isOpen()) {
-                ui->teInfo->setText("Open!!!");
-                ui->actParams->setEnabled(true);
-                ui->actChangeParams->setEnabled(true);
+                setStatusTip("Port is open");
             }
         } else {
             port->close();
-            ui->teInfo->setText(port->errorString());
+            setStatusTip(port->errorString());
         }
     } else {
         port->close();
-        ui->teInfo->setText(port->errorString());
+        setStatusTip(port->errorString());
     }
 }
 
@@ -694,9 +737,7 @@ void ListenPort::closePort()
     if (port->isOpen()) {
         port->close();
     }
-    ui->teInfo->setText("Port was closed");
-    ui->actParams->setEnabled(false);
-    ui->actChangeParams->setEnabled(false);
+    setStatusTip("Port is closed");
 }
 
 void ListenPort::changePort(QString name)
