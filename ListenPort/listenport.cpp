@@ -13,6 +13,7 @@
 #include <QJsonArray>
 #include <QMenu>
 #include <QFileDialog>
+#include <QInputDialog>
 
 
 ListenPort::ListenPort(QWidget *parent) :
@@ -112,7 +113,8 @@ void ListenPort::writeFileToDevice() {
         lbl_settings = "set Memory1[" + QByteArray::number(count) + "]:{" +
                         "Data:\"" + mid_data.toHex().toUpper() + '\0' + "\"}";
         count++;
-        if(writeData(lbl_settings)) {
+        QByteArray write_data = writeData(lbl_settings);
+        if(!write_data.length()) {
             break;
         }
         catalog_data_len = catalog_data_len / 256;
@@ -122,7 +124,52 @@ void ListenPort::writeFileToDevice() {
 }
 
 void ListenPort::readFileFromDevice() {
+    openPort();
+    if (!port->isOpen()) {
+        QMessageBox::information(0, QObject::tr("Can not write to device"), QObject::tr("Port closed"));
+        return;
+    }
+    QByteArray answ_get = writeData("get Memory1");
+    int pos = answ_get.indexOf("length:");
+    answ_get = answ_get.mid(pos + 7);
+    pos = answ_get.indexOf('\r');
+    answ_get = answ_get.mid(0, pos);
 
+    QDataStream ds(answ_get);
+    int len;
+    ds >> len;
+
+    bool ok;
+    QString user_len_for_read = QInputDialog::getText(0, "Read file fom device", "Input file length:",
+                                              QLineEdit::Normal, "", &ok);
+    if (!ok) return; //вывести ошибку
+    int user_len = user_len_for_read.toInt(&ok);
+    if (!ok) return; //вывести ошибку
+
+    QString file_name = QInputDialog::getText(0, "Read file fom device", "Input bin file name:",
+                                              QLineEdit::Normal, "", &ok);
+    if (!ok) return;
+
+    QFile file(file_name + ".bin");
+    if (!file.open(QIODevice::WriteOnly)) {
+        QMessageBox::information(0, QObject::tr("Read file fom device"), "Ошибка при создании файла");
+    }
+
+    if (user_len > len) return;
+
+    QByteArray mid_data = " ";
+    int iteration = 0;
+    while(mid_data != "" && iteration < user_len ) {
+        QByteArray query = "get Memory1[" + QByteArray::number(iteration) + "]";
+        mid_data = writeData(query);
+        int start_pos = mid_data.indexOf("{") + 9;
+        int end_pos = mid_data.indexOf("}") - start_pos - 3;
+        mid_data = mid_data.mid(start_pos, end_pos);
+        file.write(mid_data);
+        iteration++;
+    }
+    file.close();
+    closePort();
 }
 
 void ListenPort::saveInFile() {
@@ -311,7 +358,10 @@ void ListenPort::updateInfo() {
     }
     tab = 2;
     setToolTip("Идет обмен"); //не видно!!!
-    writeData("get Info");
+    QByteArray get_data = writeData("get Info");
+    if (get_data.length()) {
+        dataToJson(get_data);
+    }
     closePort();
 }
 
@@ -323,7 +373,10 @@ void ListenPort::updateSettings() {
     }
     tab = 1;
     setToolTip("Идет обмен"); //не видно!!!
-    writeData("get Settings");
+    QByteArray get_data = writeData("get Settings");
+    if (get_data.length()) {
+        dataToJson(get_data);
+    }
     closePort();
 }
 
@@ -474,10 +527,10 @@ void delay(int num) //для ожидания, пока идет чтение
         QCoreApplication::processEvents(QEventLoop::AllEvents, 100);
 }
 
-int ListenPort::writeData(QByteArray text)
+QByteArray ListenPort::writeData(QByteArray text)
 {
     if (transfer_data) {
-        return 1;
+        return "";
     } else {
         transfer_data = true;
     }
@@ -486,7 +539,7 @@ int ListenPort::writeData(QByteArray text)
     QByteArray data = text;
     int data_len = data.length();
     if (data_len == 0) {
-        return 1;
+        return "";
     }
 
     int iter;
@@ -557,7 +610,7 @@ int ListenPort::writeData(QByteArray text)
             QMessageBox::information(0, QObject::tr("Can not write to device"),
                     "Обмен завершен с ошибкой 0x" + QString("%1").arg(errcode, 0, 16).toUpper());
             transfer_data = false;
-            return 1;
+            return "";
         }
         //Обмен завершен успешно
         tranz_num++;
@@ -689,15 +742,15 @@ int ListenPort::writeData(QByteArray text)
     if (data_len > 0) {
         data[data_len++] = 0;
         transfer_data = false;
-        dataToJson(data);
+        return data;
         //QTextCodec *codec = QTextCodec::codecForName("Windows-1251");
         //codec->toUnicode(data);  //то, что пришло в формате читаемой строки
-    } else {
-        transfer_data = false;
-        QMessageBox::information(0, QObject::tr("Write to device"),
-                QObject::tr("Ошибка обмена"));
     }
-    return 0;
+
+    transfer_data = false;
+    QMessageBox::information(0, QObject::tr("Write to device"),
+            QObject::tr("Ошибка обмена"));
+    return "";
 }
 
 void ListenPort::dataToJson(QByteArray data) {

@@ -41,7 +41,7 @@ private slots:
     void changePort(QString name);
     void openPort();
     void closePort();
-    int writeData(QByteArray text);
+    QByteArray writeData(QByteArray text);
     void writePortSettings();//доработать
     void checkCustomBaudRatePolicy(int idx);
 
