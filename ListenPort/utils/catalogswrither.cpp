@@ -9,6 +9,29 @@
 #include <vector>
 
 
+int Calc_hCRC(unsigned char * bf, uint len){
+    uint n;
+    ushort crc = 0xFFFF;
+    for (n = 0; n < len; n++) {
+        crc += ((ushort)bf[n])*44111;
+        crc = crc ^ (crc >> 8);
+    }
+
+    if ((bf[n] == (crc&0xFF)) && (bf[n + 1] == ((crc>>8)&0xFF)))
+        return 1;
+
+    bf[n]=crc&0xFF;
+    bf[n+1]=(crc>>8)&0xFF;
+    return 0;
+}
+
+void delay(int num) //для ожидания, пока идет чтение
+{
+    QTime dieTime= QTime::currentTime().addSecs(num);
+    while (QTime::currentTime() < dieTime)
+        QCoreApplication::processEvents(QEventLoop::AllEvents, 100);
+}
+
 catalogswrither::catalogswrither()
 {
 }

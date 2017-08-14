@@ -48,12 +48,6 @@ QString JsonConvertor::dataToJson(QByteArray data) {
     pos = data_string.lastIndexOf("}"); //339
     data_string = data_string.left(pos) + "\0";
     data_string.remove(0, 2);
-    /*
-    int pos = data_string.indexOf(" ");
-    data_string = data_string.right(data_string.length() - pos - 1);
-    pos = data_string.indexOf(" ");
-    data_string = data_string.right(data_string.length() - pos - 1);
-    */
 
     //Добавление пробела после двоеточия
     data_string = addSpaseAfterChar(data_string, ":");

@@ -55,8 +55,10 @@ ListenPort::ListenPort(QWidget *parent) :
     connect(ui->actReadFormFile, SIGNAL(triggered()), this, SLOT(readFromFile())); //read from file
     connect(ui->actWriteCatalog, SIGNAL(triggered()), this, SLOT(writeCatalog()));
     connect(ui->actGetCatalog, SIGNAL(triggered()), this, SLOT(getCatalog()));
-    connect(ui->actWriteFileToDevice,SIGNAL(triggered()), this, SLOT(writeFileToDevice()));
-    connect(ui->actReadFileFromDevice,SIGNAL(triggered()), this, SLOT(readFileFromDevice()));
+    connect(ui->actWriteFileToDevice, SIGNAL(triggered()), this, SLOT(writeFileToDevice()));
+    connect(ui->actReadFileFromDevice, SIGNAL(triggered()), this, SLOT(readFileFromDevice()));
+
+    connect(ui->actExchange, SIGNAL(triggered(bool)), this, SLOT(changeViewMod()));
 
     getPortsInfo();
     getPortSettingsFromFile();
@@ -65,6 +67,29 @@ ListenPort::ListenPort(QWidget *parent) :
 ListenPort::~ListenPort()
 {
     delete ui;
+}
+
+void ListenPort::changeViewMod() {
+    switch (tab) {
+    case 1:
+        tab = 3;
+        ui->tabWidget->setCurrentIndex(3);
+        break;
+    case 2:
+        tab = 4;
+        ui->tabWidget->setCurrentIndex(4);
+        break;
+    case 3:
+        tab = 1;
+        ui->tabWidget->setCurrentIndex(1);
+        break;
+    case 4:
+        tab = 2;
+        ui->tabWidget->setCurrentIndex(2);
+        break;
+    default:
+        break;
+    }
 }
 
 void ListenPort::writeCatalog() {
@@ -106,6 +131,10 @@ void ListenPort::writeFileToDevice() {
     int count = 0;
     QByteArray lbl_settings;
 
+    setToolTip("Идет обмен");
+    setStatusTip("Идет обмен");
+    QMessageBox::information(0, QObject::tr("Update Settings"), QObject::tr("Please wait"));
+    delay(10);
     while (catalog_data_len / 256 >= 0) {
         int len = (catalog_data_len - count*256) >= 256 ? 256 : len; // нужно ли?
         if (len <= 0) return;
@@ -119,7 +148,7 @@ void ListenPort::writeFileToDevice() {
         }
         catalog_data_len = catalog_data_len / 256;
     }
-    setToolTip("Идет обмен");
+    setToolTip("");
     closePort();
 }
 
@@ -203,7 +232,8 @@ void ListenPort::readFromFile() { //проблемы с кодировкой
     }
     QByteArray file_data = file.readAll();
     file_data.insert(0, "answ get ");
-    dataToJson(file_data);
+    QString data_string = dataToJson(file_data);
+    buildJsonTree(data_string);
 }
 
 void ListenPort::prepareMenu(const QPoint &pos) {
@@ -337,6 +367,7 @@ void ListenPort::buildJsonTree(QString json) {
 void ListenPort::onParamsClick() {
     last_index = 2;
     ui->tabWidget->setCurrentIndex(2);
+    tab = 2;
     if(ui->treeWidget_2->topLevelItemCount() <= 0) { //если пусто - обновить
         updateInfo();
     }
@@ -345,6 +376,7 @@ void ListenPort::onParamsClick() {
 void ListenPort::onChangeParamsClick() {
     last_index = 1;
     ui->tabWidget->setCurrentIndex(1);
+    tab = 1;
     if(ui->treeWidget_2->topLevelItemCount() <= 0) { //если пусто - обновить
         updateSettings();
     }
@@ -356,12 +388,17 @@ void ListenPort::updateInfo() {
         QMessageBox::information(0, QObject::tr("Can not write to device"), QObject::tr("Port closed"));
         return;
     }
-    tab = 2;
-    setToolTip("Идет обмен"); //не видно!!!
+    setToolTip("Идет обмен");
+    setStatusTip("Идет обмен");
+    QMessageBox::information(0, QObject::tr("Update Info"), QObject::tr("Please wait"));
     QByteArray get_data = writeData("get Info");
     if (get_data.length()) {
-        dataToJson(get_data);
+        setStatusTip("Обмен завершен успешно");
+        ui->txtBrwsInfo->setText(get_data);
+        QString data_string = dataToJson(get_data);
+        buildJsonTree(data_string);
     }
+    setToolTip("");
     closePort();
 }
 
@@ -371,12 +408,19 @@ void ListenPort::updateSettings() {
         QMessageBox::information(0, QObject::tr("Can not write to device"), QObject::tr("Port closed"));
         return;
     }
-    tab = 1;
-    setToolTip("Идет обмен"); //не видно!!!
+    setToolTip("Идет обмен");
+    setStatusTip("Идет обмен");
+    QMessageBox::information(0, QObject::tr("Update Settings"), QObject::tr("Please wait"));
     QByteArray get_data = writeData("get Settings");
+    //QByteArray get_data = writeData("get Settings.Disps[0]");
     if (get_data.length()) {
-        dataToJson(get_data);
+        analizeData(get_data);
+        setStatusTip("Обмен завершен успешно");
+        ui->txtBrwsSetting->setText(get_data);
+        QString data_string = dataToJson(get_data);
+        buildJsonTree(data_string);
     }
+    setToolTip("");
     closePort();
 }
 
@@ -389,7 +433,7 @@ void ListenPort::onSettingsClick(bool enab) {
     ui->tabWidget->setCurrentIndex(last_index);
 }
 
-void ListenPort::getPortSettingsFromFile() {
+void ListenPort::getPortSettingsFromFile() { //переделать на словарь
     QFile file("settings.ini");
     if (!file.open(QIODevice::ReadOnly)) {
         return;
@@ -425,6 +469,10 @@ void ListenPort::getPortSettingsFromFile() {
         }
         if (list[0] == "Addres") {
             ui->leAddres->setText(list[1]);
+            continue;
+        }
+        if (list[0] == "ByteInPacket") {
+            ui->leByteInPacket->setText(list[1]);
             continue;
         }
     }
@@ -488,6 +536,10 @@ void ListenPort::writePortSettings() {
     SettingsPort.stopBits = (QSerialPort::StopBits) ui->cbStopBits->itemText(ui->cbStopBits->currentIndex()).toInt();
     SettingsPort.flowControl = (QSerialPort::FlowControl) ui->cbFlowControl->itemText(ui->cbFlowControl->currentIndex()).toInt();
 
+    bool ok;
+    int onPackage = ui->leAddres->text().toInt(&ok);
+    byteOnPackage = (ok && onPackage < 256 && onPackage > 0) ? onPackage : 100;
+
     QFile file("settings.ini");
     file.open(QIODevice::ReadWrite);
 
@@ -500,31 +552,59 @@ void ListenPort::writePortSettings() {
     out << "StopBits=" << ui->cbStopBits->itemText(ui->cbStopBits->currentIndex()) << "\n";
     out << "FlowControl=" << ui->cbFlowControl->itemText(ui->cbFlowControl->currentIndex()) << "\n";
     out << "Addres=" << ui->leAddres->text() << "\n";
-
+    out << "ByteInPacket=" << ui->leByteInPacket->text() << "\n";
     file.close();
 }
 
-int Calc_hCRC(unsigned char * bf, uint len) {
-    uint n;
-    ushort crc = 0xFFFF;
-    for (n = 0; n < len; n++) {
-        crc += ((ushort)bf[n])*44111;
-        crc = crc ^ (crc >> 8);
+QByteArray ListenPort::analizeData(QByteArray data) {
+    QByteArray substr;
+    int pos = data.indexOf("]");
+    while(pos > 0) {
+        if (data[pos-1] == '[') {
+            int posa = data.indexOf("{", pos+1);
+            int posb = data.indexOf("[", pos+1);
+            if ((posb < posa || posa == -1) && posb > 0) {
+                continue;
+            }
+            substr = data.mid(0, pos);
+            int pos_start = substr.lastIndexOf('\n');
+            substr = substr.mid(pos_start + 1, pos - pos_start - 2);
+            if (substr == "") continue;
+            QByteArray new_data = writeData("get Settings." + substr);
+            int fst_kv = new_data.indexOf("{");
+            int last_kv = new_data.lastIndexOf("}");
+            new_data = new_data.mid(fst_kv, last_kv - fst_kv + 1); //json object
+
+            QString st = dataToJson(new_data);
+            QJsonDocument json = QJsonDocument::fromJson(st.toUtf8());
+            if (json.isNull()) {
+                continue;
+            }
+            if (!json.isObject()) {
+                continue;
+            }
+            QJsonObject obj = json.object();
+            int st1 = obj["start"].toInt();
+            int ln = obj["length"].toInt();
+
+            QByteArray getted_data;
+            for (int i = st1; i < ln; i++) {
+                QByteArray part = writeData("get Settings." + substr + "[" + QByteArray::number(i) + "]");
+                //обрезать answ...
+                getted_data.append(part);
+                getted_data.append(",\n");
+            }
+            getted_data = getted_data.mid(0, getted_data.length() - 2);
+
+            //правильно добавить
+
+            QByteArray firs = data.mid(0, pos+1);
+            QByteArray sec = data.mid(pos+1);
+            data = firs + ":" + new_data + sec;
+        }
+        pos = data.indexOf("]", pos+1);
     }
-
-    if ((bf[n] == (crc&0xFF)) && (bf[n + 1] == ((crc>>8)&0xFF)))
-        return 1;
-
-    bf[n]=crc&0xFF;
-    bf[n+1]=(crc>>8)&0xFF;
-    return 0;
-}
-
-void delay(int num) //для ожидания, пока идет чтение
-{
-    QTime dieTime= QTime::currentTime().addSecs(num);
-    while (QTime::currentTime() < dieTime)
-        QCoreApplication::processEvents(QEventLoop::AllEvents, 100);
+    return data;
 }
 
 QByteArray ListenPort::writeData(QByteArray text)
@@ -548,7 +628,7 @@ QByteArray ListenPort::writeData(QByteArray text)
     uint data_pos = 0;
     uint max_pkg_len;
     unsigned char answ_kadr;
-    (data_len < 16) ? max_pkg_len = 16 : max_pkg_len = 255;
+    (data_len < 16) ? max_pkg_len = 16 : max_pkg_len = byteOnPackage;
 
     while (data_len) {
         buff[0] = 0xB5;
@@ -614,7 +694,6 @@ QByteArray ListenPort::writeData(QByteArray text)
         }
         //Обмен завершен успешно
         tranz_num++;
-        setStatusTip("Обмен завершен успешно");
     }
 
     //Инициируем получение данных
@@ -753,10 +832,9 @@ QByteArray ListenPort::writeData(QByteArray text)
     return "";
 }
 
-void ListenPort::dataToJson(QByteArray data) {
+QString ListenPort::dataToJson(QByteArray data) {
     JsonConvertor *convertor = new JsonConvertor();
-    QString data_string = convertor->dataToJson(data);
-    buildJsonTree(data_string);
+    return convertor->dataToJson(data);
 }
 
 void ListenPort::openPort()

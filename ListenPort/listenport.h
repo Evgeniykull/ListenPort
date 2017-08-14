@@ -42,6 +42,7 @@ private slots:
     void openPort();
     void closePort();
     QByteArray writeData(QByteArray text);
+    QByteArray analizeData(QByteArray data);
     void writePortSettings();//доработать
     void checkCustomBaudRatePolicy(int idx);
 
@@ -49,7 +50,7 @@ private slots:
     void onParamsClick();
     void onChangeParamsClick();
 
-    void dataToJson(QByteArray data);
+    QString dataToJson(QByteArray data);
     void buildJsonTree(QString json);
     void changeRowTree();
     void addRowTree();
@@ -68,6 +69,8 @@ private slots:
 
     void updateSettings();
     void updateInfo();
+
+    void changeViewMod();
 
 private:
     Ui::ListenPort *ui;
@@ -95,6 +98,7 @@ private:
     QJsonDocument mDocument;
     void generateTree(std::string json);
     int tab;
+    int byteOnPackage;
 };
 
 #endif // LISTENPORT_H
