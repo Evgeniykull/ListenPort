@@ -45,7 +45,7 @@ QString JsonConvertor::dataToJson(QByteArray data) {
     //обрезка первых 2х значений (answ get)
     int pos = data_string.indexOf("{");
     data_string = data_string.right(data_string.length() - pos - 1);
-    pos = data_string.lastIndexOf("}"); //339
+    pos = data_string.lastIndexOf("}");
     data_string = data_string.left(pos) + "\0";
     data_string.remove(0, 2);
 
@@ -54,6 +54,9 @@ QString JsonConvertor::dataToJson(QByteArray data) {
 
     //Добавление пробела после запятой
     data_string = addSpaseAfterChar(data_string, ",");
+
+    //Добавление пробела после {
+    data_string = addSpaseAfterChar(data_string, "{");
 
     //все слова перед : в "" (неоптимально)
     int from = 0;
@@ -109,11 +112,12 @@ QString JsonConvertor::dataToJson(QByteArray data) {
     }
 
     //удаление , после {
-    while (int n = data_string.indexOf("{,")) {
+    int n;
+    while (n = data_string.indexOf("{ ,")) {
         if (n == -1) {
             break;
         }
-        data_string.remove(n + 1, 1);
+        data_string.remove(n + 2, 1);
     }
 
     return data_string;

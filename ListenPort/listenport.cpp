@@ -122,7 +122,7 @@ void ListenPort::writeFileToDevice() {
 
     QFile file(file_path);
     if (!file.open(QIODevice::ReadOnly)) {
-        QMessageBox::information(0, QObject::tr("Unable to open file"), file.errorString());
+        QMessageBox::information(0, QObject::tr("Невозможно открыть файл"), file.errorString());
         return;
     }
 
@@ -133,7 +133,7 @@ void ListenPort::writeFileToDevice() {
 
     setToolTip("Идет обмен");
     setStatusTip("Идет обмен");
-    QMessageBox::information(0, QObject::tr("Update Settings"), QObject::tr("Please wait"));
+    QMessageBox::information(0, QObject::tr("Update Settings"), QObject::tr("Пожалуйста подождите"));
     delay(10);
     while (catalog_data_len / 256 >= 0) {
         int len = (catalog_data_len - count*256) >= 256 ? 256 : len; // нужно ли?
@@ -412,12 +412,15 @@ void ListenPort::updateSettings() {
     setStatusTip("Идет обмен");
     QMessageBox::information(0, QObject::tr("Update Settings"), QObject::tr("Please wait"));
     QByteArray get_data = writeData("get Settings");
-    //QByteArray get_data = writeData("get Settings.Disps[0]");
     if (get_data.length()) {
-        analizeData(get_data);
+        QByteArray get_data2 = analizeData(get_data);
         setStatusTip("Обмен завершен успешно");
-        ui->txtBrwsSetting->setText(get_data);
-        QString data_string = dataToJson(get_data);
+        ui->txtBrwsSetting->setText(get_data2);
+        QString data_string = dataToJson(get_data2);
+        QFile fl("pw1.txt");
+        fl.open(QIODevice::WriteOnly);
+        fl.write(data_string.toUtf8());
+        fl.close();
         buildJsonTree(data_string);
     }
     setToolTip("");
@@ -558,18 +561,24 @@ void ListenPort::writePortSettings() {
 
 QByteArray ListenPort::analizeData(QByteArray data) {
     QByteArray substr;
+    int gtt_len = 0;
     int pos = data.indexOf("]");
     while(pos > 0) {
         if (data[pos-1] == '[') {
             int posa = data.indexOf("{", pos+1);
             int posb = data.indexOf("[", pos+1);
             if ((posb < posa || posa == -1) && posb > 0) {
+                pos = data.indexOf("]", pos+1+gtt_len);
                 continue;
             }
             substr = data.mid(0, pos);
             int pos_start = substr.lastIndexOf('\n');
             substr = substr.mid(pos_start + 1, pos - pos_start - 2);
-            if (substr == "") continue;
+            if (substr == "") {
+                pos = data.indexOf("]", pos+1+gtt_len);
+                continue;
+            }
+
             QByteArray new_data = writeData("get Settings." + substr);
             int fst_kv = new_data.indexOf("{");
             int last_kv = new_data.lastIndexOf("}");
@@ -578,9 +587,11 @@ QByteArray ListenPort::analizeData(QByteArray data) {
             QString st = dataToJson(new_data);
             QJsonDocument json = QJsonDocument::fromJson(st.toUtf8());
             if (json.isNull()) {
+                pos = data.indexOf("]", pos+1+gtt_len);
                 continue;
             }
             if (!json.isObject()) {
+                pos = data.indexOf("]", pos+1+gtt_len);
                 continue;
             }
             QJsonObject obj = json.object();
@@ -591,18 +602,36 @@ QByteArray ListenPort::analizeData(QByteArray data) {
             for (int i = st1; i < ln; i++) {
                 QByteArray part = writeData("get Settings." + substr + "[" + QByteArray::number(i) + "]");
                 //обрезать answ...
+                int dv_pos = part.indexOf(":") + 1;
+                int end_pos = part.lastIndexOf("}");
+                part = part.mid(dv_pos, end_pos - dv_pos+1);
+                getted_data.append("[" + QByteArray::number(i) + "]:");
                 getted_data.append(part);
-                getted_data.append(",\n");
+                getted_data.append("\n");
             }
-            getted_data = getted_data.mid(0, getted_data.length() - 2);
+            getted_data = getted_data.mid(0, getted_data.length());
+            QByteArray getted_data_2;
+            getted_data_2.append("{");
+            getted_data_2.append(getted_data);
+            getted_data_2.append("}");
+            /*QString data_string = dataToJson(getted_data_2);
+            QFile fl("pw.txt");
+            fl.open(QIODevice::WriteOnly);
+            fl.write(data_string.toUtf8());
+            fl.close();*/
+
 
             //правильно добавить
+            int pppos = data.indexOf("}", pos+1);
+            QByteArray sss = data.mid(pppos+1);
 
             QByteArray firs = data.mid(0, pos+1);
-            QByteArray sec = data.mid(pos+1);
-            data = firs + ":" + new_data + sec;
+            //QByteArray sec = data.mid(pos+1);
+            data = firs + ":" + getted_data_2 + sss;
+            gtt_len = getted_data_2.length();
         }
-        pos = data.indexOf("]", pos+1);
+        pos = data.indexOf("]", pos+1+gtt_len);
+        gtt_len = 0;
     }
     return data;
 }
