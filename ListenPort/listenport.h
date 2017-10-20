@@ -1,13 +1,13 @@
 #ifndef LISTENPORT_H
 #define LISTENPORT_H
 
-#include <vector>
 #include <QMainWindow>
 #include <QString>
 #include <QtSerialPort/QSerialPort>
 #include <QtSerialPort/QSerialPortInfo>
 #include <QTreeWidgetItem>
 #include <QJsonDocument>
+#include <QMap>
 #include "changesettingswindow.h"
 #include "utils/catalogswrither.h"
 
@@ -99,6 +99,8 @@ private:
     void generateTree(std::string json);
     int tab;
     int byteOnPackage;
+
+    QMap<QString, QString> changed_key;
 };
 
 #endif // LISTENPORT_H

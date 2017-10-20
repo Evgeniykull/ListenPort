@@ -106,15 +106,11 @@ void ListenPort::getCatalog() {
 void ListenPort::writeFileToDevice() {
     openPort();
     if (!port->isOpen()) {
-        QMessageBox::information(0, QObject::tr("Can not write to device"), QObject::tr("Port closed"));
+        QMessageBox::information(0, QObject::tr("Невозможно записать на устройство"), QObject::tr("Порт закрыт"));
         return;
     }
 
-    QString file_path = QFileDialog::getOpenFileName(
-            0,
-            QObject::tr("Select file"),
-            "/home",
-            QObject::tr("File (*.bin)"));
+    QString file_path = QFileDialog::getOpenFileName(0, QObject::tr("Выберите файл"), "/home", QObject::tr("File (*.bin)"));
     if (file_path.isEmpty()) {
         QMessageBox::information(0, QObject::tr("Ошибка при получении каталога"), "Пустой путь к файлу");
         return;
@@ -126,27 +122,28 @@ void ListenPort::writeFileToDevice() {
         return;
     }
 
-    QByteArray catalog_data = file.readAll();
-    int catalog_data_len = catalog_data.length();
+    QByteArray data = file.readAll();
+    int catalog_data_len = data.length();
     int count = 0;
-    QByteArray lbl_settings;
 
     setToolTip("Идет обмен");
     setStatusTip("Идет обмен");
+    //переделать вывод сообщения
     QMessageBox::information(0, QObject::tr("Update Settings"), QObject::tr("Пожалуйста подождите"));
-    delay(10);
+
     while (catalog_data_len / 256 >= 0) {
         int len = (catalog_data_len - count*256) >= 256 ? 256 : len; // нужно ли?
-        if (len <= 0) return;
-        QByteArray mid_data = catalog_data.mid(count*256, len);
-        lbl_settings = "set Memory1[" + QByteArray::number(count) + "]:{" +
+        if (!len) return;
+        QByteArray mid_data = data.mid(count*256, len);
+        QByteArray lbl_settings = "set Memory1[" + QByteArray::number(count) + "]:{" +
                         "Data:\"" + mid_data.toHex().toUpper() + '\0' + "\"}";
         count++;
         QByteArray write_data = writeData(lbl_settings);
         if(!write_data.length()) {
+            QMessageBox::information(0, QObject::tr("Update Settings"), QObject::tr("Ошибка при записи"));
             break;
         }
-        catalog_data_len = catalog_data_len / 256;
+        catalog_data_len /= 256;
     }
     setToolTip("");
     closePort();
@@ -155,9 +152,10 @@ void ListenPort::writeFileToDevice() {
 void ListenPort::readFileFromDevice() {
     openPort();
     if (!port->isOpen()) {
-        QMessageBox::information(0, QObject::tr("Can not write to device"), QObject::tr("Port closed"));
+        QMessageBox::information(0, QObject::tr("Невозможно считать с устройства"), QObject::tr("Порт закрыт"));
         return;
     }
+
     QByteArray answ_get = writeData("get Memory1");
     int pos = answ_get.indexOf("length:");
     answ_get = answ_get.mid(pos + 7);
@@ -169,23 +167,35 @@ void ListenPort::readFileFromDevice() {
     ds >> len;
 
     bool ok;
-    QString user_len_for_read = QInputDialog::getText(0, "Read file fom device", "Input file length:",
+    QString user_len_for_read = QInputDialog::getText(0, "Read file fom device", "Введите длину файла:",
                                               QLineEdit::Normal, "", &ok);
-    if (!ok) return; //вывести ошибку
+    if (!ok) {
+        QMessageBox::information(0, QObject::tr("Read file fom device"), QObject::tr("Неверно введена длинна"));
+        return;
+    }
     int user_len = user_len_for_read.toInt(&ok);
-    if (!ok) return; //вывести ошибку
 
-    QString file_name = QInputDialog::getText(0, "Read file fom device", "Input bin file name:",
+    if (!ok) {
+        QMessageBox::information(0, QObject::tr("Read file fom device"), QObject::tr("Неверно введена длинна"));
+        return;
+    }
+
+    QString file_name = QInputDialog::getText(0, "Read file fom device", "Введите имя файла (.bin):",
                                               QLineEdit::Normal, "", &ok);
-    if (!ok) return;
+    if (!ok) {
+        QMessageBox::information(0, QObject::tr("Read file fom device"), QObject::tr("Неверно введено имя файла"));
+        return;
+    }
 
     QFile file(file_name + ".bin");
     if (!file.open(QIODevice::WriteOnly)) {
         QMessageBox::information(0, QObject::tr("Read file fom device"), "Ошибка при создании файла");
     }
 
-    if (user_len > len) return;
+    user_len = user_len > len ? len : user_len;
 
+    //to do
+    //переделать нормально
     QByteArray mid_data = " ";
     int iteration = 0;
     while(mid_data != "" && iteration < user_len ) {
@@ -205,33 +215,47 @@ void ListenPort::saveInFile() {
     QString fileName = QFileDialog::getSaveFileName(this,
             tr("Save settings"), "",
             tr("All Files (*)"));
-    if (fileName.isEmpty()) return;
-    QFile file(fileName);
-    if (!file.open(QIODevice::WriteOnly)) {
-        QMessageBox::information(this, tr("Unable to open file"),
-            file.errorString());
+    if (fileName.isEmpty()) {
+        QMessageBox::information(0, QObject::tr("Save in file"), "Неверно введено имя файла");
         return;
     }
+
+    QFile file(fileName);
+    if (!file.open(QIODevice::WriteOnly)) {
+        QMessageBox::information(this, tr("Unable to open file"), file.errorString());
+        return;
+    }
+
     JsonConvertor *convertor = new JsonConvertor();
+    //to do
+    //правильная ли логика?
+    //теперь вроде есть отдельная вкладка
     QString data_string = convertor->dataByTree(ui->treeWidget);
     QByteArray data_string_array = QByteArray((char*)data_string.toStdString().c_str());
     file.write(data_string_array);
     file.close();
 }
 
-void ListenPort::readFromFile() { //проблемы с кодировкой
+//to do
+//проблемы с кодировкой
+void ListenPort::readFromFile() {
     QString fileName = QFileDialog::getOpenFileName(this,
             tr("Open settings"), "",
             tr("All Files (*)"));
-    if (fileName.isEmpty()) return;
-    QFile file(fileName);
-    if (!file.open(QIODevice::ReadOnly)) {
-        QMessageBox::information(this, tr("Unable to open file"),
-            file.errorString());
+    if (fileName.isEmpty()) {
+        QMessageBox::information(0, QObject::tr("Save in file"), "Неверно введено имя файла");
         return;
     }
+
+    QFile file(fileName);
+    if (!file.open(QIODevice::ReadOnly)) {
+        QMessageBox::information(this, tr("Unable to open file"), file.errorString());
+        return;
+    }
+
     QByteArray file_data = file.readAll();
     file_data.insert(0, "answ get ");
+    //конвертор utf нужен
     QString data_string = dataToJson(file_data);
     buildJsonTree(data_string);
 }
@@ -261,15 +285,59 @@ void ListenPort::changeRowTree() {
     connect(change_sett_wind, SIGNAL(pressedCancelButton()), d, SLOT(close()));
     d->exec();
 
-    if(!change_sett_wind->isCancel()) {
-        QString key = change_sett_wind->getKey();
-        QString value = change_sett_wind->getValue();
-        ui->treeWidget->currentItem()->setText(0, key);
-        if (ui->treeWidget->currentItem()->child(0)) {
-            return;
-        }
-        ui->treeWidget->currentItem()->setText(1, value);
+    if(change_sett_wind->isCancel()) {
+        return;
     }
+
+    QTreeWidgetItem *current_item = ui->treeWidget->currentItem();
+
+    QString key = change_sett_wind->getKey();
+    if (!key.isEmpty()) {
+        current_item->setText(0, key);
+    }
+
+    QString value = change_sett_wind->getValue();
+    if (current_item->child(0) || value.isEmpty()) {
+        return;
+    }
+    current_item->setText(1, value);
+
+    QTreeWidgetItem *parent_item = current_item;
+
+    #include <QVector>
+    QVector<QString> path_to_item;
+    while (parent_item->parent()) {
+        path_to_item.append(parent_item->parent()->text(0));
+        parent_item = parent_item->parent();
+    }
+    std::reverse(std::begin(path_to_item), std::end(path_to_item));
+
+    QVector<QString> new_path_to_item;
+    QString name;
+    for(int i = 0; i < path_to_item.size(); i++) {
+        name = path_to_item[i];
+        int indx = name.indexOf("[]");
+        if (indx != -1) {
+            name.insert(name.length()-1, path_to_item[i+1]);
+            i++;
+        }
+        new_path_to_item.append(name);
+    }
+
+    QString full_key;
+    for (int i = 0; i < new_path_to_item.size(); i++) {
+        full_key.append(new_path_to_item[i]);
+        full_key.append(".");
+    }
+    full_key.append(current_item->text(0));
+
+    QByteArray query = "set " + QByteArray(full_key.toStdString().c_str()) + ": " + QByteArray(value.toStdString().c_str());
+    QByteArray write_data = writeData(query);
+    if(!write_data.length()) {
+        QMessageBox::information(0, QObject::tr("Change param"), QObject::tr("Ошибка при изменении параметров"));
+    }
+
+    qDebug() << path_to_item;
 }
 
 void ListenPort::addRowTree() { //добавляет запись в ту же строку, что и элемент
@@ -340,9 +408,7 @@ bool ListenPort::loadJson(const QString &json)
         }
         return true;
     }
-    QMessageBox msgBox;
-    msgBox.setText("Cannot load json to tree."); //to form
-    msgBox.exec();
+    QMessageBox::information(this, tr("Load json"), "Cannot load json to tree");
     return false;
 }
 
@@ -352,16 +418,14 @@ void ListenPort::buildJsonTree(QString json) {
         wid = ui->treeWidget_2;
 
     wid->clear();
-    if (loadJson(json)) {
-        wid->addTopLevelItem(mRootItem);
-        wid->setColumnWidth(0, 230);
-        wid->headerItem()->setText(0, "Key");
-        wid->headerItem()->setText(1, "Value");
-    } else {
-        QMessageBox msgBox;
-        msgBox.setText("Cannot convert json to tree."); //to form
-        msgBox.exec();
+    if (!loadJson(json)) {
+        QMessageBox::information(this, tr("Build json tree"), "Cannot convert json to tree");
+        return;
     }
+    wid->addTopLevelItem(mRootItem);
+    wid->setColumnWidth(0, 230);
+    wid->headerItem()->setText(0, "Key");
+    wid->headerItem()->setText(1, "Value");
 }
 
 void ListenPort::onParamsClick() {
@@ -385,19 +449,22 @@ void ListenPort::onChangeParamsClick() {
 void ListenPort::updateInfo() {
     openPort();
     if (!port->isOpen()) {
-        QMessageBox::information(0, QObject::tr("Can not write to device"), QObject::tr("Port closed"));
+        QMessageBox::information(0, QObject::tr("Can not write to device"), QObject::tr("Порт закрыт"));
         return;
     }
     setToolTip("Идет обмен");
     setStatusTip("Идет обмен");
-    QMessageBox::information(0, QObject::tr("Update Info"), QObject::tr("Please wait"));
-    QByteArray get_data = writeData("get Info");
-    if (get_data.length()) {
-        setStatusTip("Обмен завершен успешно");
-        ui->txtBrwsInfo->setText(get_data);
-        QString data_string = dataToJson(get_data);
-        buildJsonTree(data_string);
+    QMessageBox::information(0, QObject::tr("Update Info"), QObject::tr("Пожалуйста подождите"));
+
+    QByteArray data = writeData("get Info");
+    if (!data.length()) {
+        QMessageBox::information(0, QObject::tr("Update Info"), QObject::tr("Не удалось получить информацию от устройства"));
     }
+
+    setStatusTip("Обмен завершен успешно");
+    ui->txtBrwsInfo->setText(data);
+    QString json = dataToJson(data);
+    buildJsonTree(json);
     setToolTip("");
     closePort();
 }
@@ -405,24 +472,23 @@ void ListenPort::updateInfo() {
 void ListenPort::updateSettings() {
     openPort();
     if (!port->isOpen()) {
-        QMessageBox::information(0, QObject::tr("Can not write to device"), QObject::tr("Port closed"));
+        QMessageBox::information(0, QObject::tr("Can not write to device"), QObject::tr("Порт закрыт"));
         return;
     }
     setToolTip("Идет обмен");
     setStatusTip("Идет обмен");
-    QMessageBox::information(0, QObject::tr("Update Settings"), QObject::tr("Please wait"));
-    QByteArray get_data = writeData("get Settings");
-    if (get_data.length()) {
-        QByteArray get_data2 = analizeData(get_data);
-        setStatusTip("Обмен завершен успешно");
-        ui->txtBrwsSetting->setText(get_data2);
-        QString data_string = dataToJson(get_data2);
-        QFile fl("pw1.txt");
-        fl.open(QIODevice::WriteOnly);
-        fl.write(data_string.toUtf8());
-        fl.close();
-        buildJsonTree(data_string);
+    QMessageBox::information(0, QObject::tr("Update Settings"), QObject::tr("Пожалуйста подождите"));
+
+    QByteArray data = writeData("get Settings");
+    if (!data.length()) {
+        QMessageBox::information(0, QObject::tr("Update Settings"), QObject::tr("Не удалось получить информацию от устройства"));
     }
+
+    QByteArray analized_data = analizeData(data);
+    setStatusTip("Обмен завершен успешно");
+    ui->txtBrwsSetting->setText(analized_data);
+    QString data_string = dataToJson(analized_data);
+    buildJsonTree(data_string);
     setToolTip("");
     closePort();
 }
@@ -436,7 +502,9 @@ void ListenPort::onSettingsClick(bool enab) {
     ui->tabWidget->setCurrentIndex(last_index);
 }
 
-void ListenPort::getPortSettingsFromFile() { //переделать на словарь
+//to do
+//переделать на словарь если возможно
+void ListenPort::getPortSettingsFromFile() {
     QFile file("settings.ini");
     if (!file.open(QIODevice::ReadOnly)) {
         return;
@@ -559,6 +627,8 @@ void ListenPort::writePortSettings() {
     file.close();
 }
 
+//to do
+//разобраться и по возможности переделать это
 QByteArray ListenPort::analizeData(QByteArray data) {
     QByteArray substr;
     int gtt_len = 0;
@@ -636,6 +706,8 @@ QByteArray ListenPort::analizeData(QByteArray data) {
     return data;
 }
 
+//to do
+//и в этом
 QByteArray ListenPort::writeData(QByteArray text)
 {
     if (transfer_data) {
