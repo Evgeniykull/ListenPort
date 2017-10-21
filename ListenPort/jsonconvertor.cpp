@@ -39,8 +39,9 @@ QString addSpaseAfterChar(QString str, const char* ch) {
 }
 
 QString JsonConvertor::dataToJson(QByteArray data) {
-    QTextCodec *codec = QTextCodec::codecForName("Windows-1251");
-    QString data_string = codec->toUnicode(data);
+    //QTextCodec *codec = QTextCodec::codecForName("Windows-1251");
+    //QString data_string = codec->toUnicode(data);
+    QString data_string = data;
 
     //обрезка первых 2х значений (answ get)
     int pos = data_string.indexOf("{");

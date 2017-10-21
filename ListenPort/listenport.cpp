@@ -455,8 +455,8 @@ void ListenPort::updateInfo() {
     setToolTip("Идет обмен");
     setStatusTip("Идет обмен");
     QMessageBox::information(0, QObject::tr("Update Info"), QObject::tr("Пожалуйста подождите"));
+    QByteArray data = writeData("get Состояние");
 
-    QByteArray data = writeData("get Info");
     if (!data.length()) {
         QMessageBox::information(0, QObject::tr("Update Info"), QObject::tr("Не удалось получить информацию от устройства"));
     }
@@ -479,7 +479,7 @@ void ListenPort::updateSettings() {
     setStatusTip("Идет обмен");
     QMessageBox::information(0, QObject::tr("Update Settings"), QObject::tr("Пожалуйста подождите"));
 
-    QByteArray data = writeData("get Settings");
+    QByteArray data = writeData("get Установки");
     if (!data.length()) {
         QMessageBox::information(0, QObject::tr("Update Settings"), QObject::tr("Не удалось получить информацию от устройства"));
     }
@@ -488,6 +488,7 @@ void ListenPort::updateSettings() {
     setStatusTip("Обмен завершен успешно");
     ui->txtBrwsSetting->setText(analized_data);
     QString data_string = dataToJson(analized_data);
+
     buildJsonTree(data_string);
     setToolTip("");
     closePort();
@@ -649,7 +650,7 @@ QByteArray ListenPort::analizeData(QByteArray data) {
                 continue;
             }
 
-            QByteArray new_data = writeData("get Settings." + substr);
+            QByteArray new_data = writeData("get Установки." + substr);
             int fst_kv = new_data.indexOf("{");
             int last_kv = new_data.lastIndexOf("}");
             new_data = new_data.mid(fst_kv, last_kv - fst_kv + 1); //json object
@@ -670,7 +671,7 @@ QByteArray ListenPort::analizeData(QByteArray data) {
 
             QByteArray getted_data;
             for (int i = st1; i < ln; i++) {
-                QByteArray part = writeData("get Settings." + substr + "[" + QByteArray::number(i) + "]");
+                QByteArray part = writeData("get Установки." + substr + "[" + QByteArray::number(i) + "]");
                 //обрезать answ...
                 int dv_pos = part.indexOf(":") + 1;
                 int end_pos = part.lastIndexOf("}");
@@ -709,12 +710,15 @@ QByteArray ListenPort::analizeData(QByteArray data) {
 //to do
 //и в этом
 QByteArray ListenPort::writeData(QByteArray text)
-{
+{   
     if (transfer_data) {
         return "";
     } else {
         transfer_data = true;
     }
+
+    QTextCodec *codec1 = QTextCodec::codecForName( "CP1251" );
+    text = codec1->fromUnicode(QString(text));
 
     //Подготавливаем данные
     QByteArray data = text;
@@ -821,6 +825,7 @@ QByteArray ListenPort::writeData(QByteArray text)
             buff[4]=(tranz_num + 1);
             Calc_hCRC(buff,5);
             QByteArray tr_data = QByteArray((char *)buff, 7);
+            //see writeData
             port->write(tr_data);
             port->waitForBytesWritten(20);
         } else {
@@ -922,9 +927,9 @@ QByteArray ListenPort::writeData(QByteArray text)
     if (data_len > 0) {
         data[data_len++] = 0;
         transfer_data = false;
-        return data;
-        //QTextCodec *codec = QTextCodec::codecForName("Windows-1251");
-        //codec->toUnicode(data);  //то, что пришло в формате читаемой строки
+        QTextCodec *codec = QTextCodec::codecForName("Windows-1251");
+        QString data_1 = codec->toUnicode(data);  //то, что пришло в формате читаемой строки
+        return QByteArray(data_1.toStdString().c_str());
     }
 
     transfer_data = false;
