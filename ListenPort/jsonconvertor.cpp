@@ -39,8 +39,6 @@ QString addSpaseAfterChar(QString str, const char* ch) {
 }
 
 QString JsonConvertor::dataToJson(QByteArray data) {
-    //QTextCodec *codec = QTextCodec::codecForName("Windows-1251");
-    //QString data_string = codec->toUnicode(data);
     QString data_string = data;
 
     //обрезка первых 2х значений (answ get)
@@ -59,22 +57,29 @@ QString JsonConvertor::dataToJson(QByteArray data) {
     //Добавление пробела после {
     data_string = addSpaseAfterChar(data_string, "{");
 
-    //все слова перед : в "" (неоптимально)
-    int from = 0;
-    while (int start_pos = data_string.indexOf(":", from)) {
-        if (start_pos == -1) {
-            break;
+    //Добавление ковычек
+    int all_kow = 0;
+    for (int i=0; i< data_string.length(); i++) {
+        QChar chart = data_string[i];
+        if (chart == '"') {
+            all_kow++;
+            continue;
         }
-        int space_pos = data_string.lastIndexOf(" ", start_pos);
-        int enter_pos = data_string.lastIndexOf("\n", start_pos);
-        int space = (space_pos > enter_pos) ? space_pos : enter_pos;
-        data_string.insert(space + 1, "\"");
-        data_string.insert(start_pos + 1, "\"");
-        from = start_pos + 3;
+        if (chart == ':') {
+            if (all_kow % 2 != 0) continue;
+
+            int space_pos = data_string.lastIndexOf(" ", i);
+            int enter_pos = data_string.lastIndexOf("\n", i);
+            int space = (space_pos > enter_pos) ? space_pos : enter_pos;
+            data_string.insert(space + 1, "\"");
+            data_string.insert(i + 1, "\"");
+            //all_kow++;
+            i += 3;
+        }
     }
 
     //добавление запятых (неоптимально)
-    from = 0;
+    int from = 0;
     while (int start_pos = data_string.indexOf("\n", from)) {
         if (start_pos == -1 || start_pos >= data_string.length() - 2) {
             break;

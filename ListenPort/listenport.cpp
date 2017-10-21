@@ -371,9 +371,9 @@ void ListenPort::delRowTree() {
 QTreeWidgetItem * ListenPort::load(const QJsonValue& value, QTreeWidgetItem* parent) {
     QTreeWidgetItem * rootItem = new QTreeWidgetItem(parent);
     if (tab == 1) {
-        rootItem->setText(0, "Settings");
+        rootItem->setText(0, "Установки");
     } else {
-        rootItem->setText(0, "Info");
+        rootItem->setText(0, "Состояние");
     }
 
     if ( value.isObject()) {
