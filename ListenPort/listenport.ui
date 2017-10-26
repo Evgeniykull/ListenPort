@@ -256,6 +256,7 @@
     </property>
     <addaction name="actSave"/>
     <addaction name="actReadFormFile"/>
+    <addaction name="actWriteChangeToDevice"/>
    </widget>
    <addaction name="menuFile"/>
    <addaction name="menu_2"/>
@@ -453,6 +454,11 @@
   <action name="actReadFileFromDevice">
    <property name="text">
     <string>Получить файл из устройства</string>
+   </property>
+  </action>
+  <action name="actWriteChangeToDevice">
+   <property name="text">
+    <string>Записать изменения</string>
    </property>
   </action>
  </widget>

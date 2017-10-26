@@ -14,6 +14,7 @@
 #include <QMenu>
 #include <QFileDialog>
 #include <QInputDialog>
+#include <QVector>
 
 
 ListenPort::ListenPort(QWidget *parent) :
@@ -59,6 +60,7 @@ ListenPort::ListenPort(QWidget *parent) :
     connect(ui->actReadFileFromDevice, SIGNAL(triggered()), this, SLOT(readFileFromDevice()));
 
     connect(ui->actExchange, SIGNAL(triggered(bool)), this, SLOT(changeViewMod()));
+    connect(ui->actWriteChangeToDevice, SIGNAL(triggered(bool)), this, SLOT(writeChangeToDevice()));
 
     getPortsInfo();
     getPortSettingsFromFile();
@@ -279,6 +281,11 @@ void ListenPort::changeRowTree() {
         return;
     }
 
+    QTreeWidgetItem *current_item = ui->treeWidget->currentItem();
+    if (current_item->text(1).isEmpty()) {
+        return;
+    }
+
     QDialog *d = new QDialog();
     change_sett_wind = new ChangeSettingsWindow(d);
     connect(change_sett_wind, SIGNAL(pressedOkButton()), d, SLOT(close()));
@@ -289,13 +296,6 @@ void ListenPort::changeRowTree() {
         return;
     }
 
-    QTreeWidgetItem *current_item = ui->treeWidget->currentItem();
-
-    QString key = change_sett_wind->getKey();
-    if (!key.isEmpty()) {
-        current_item->setText(0, key);
-    }
-
     QString value = change_sett_wind->getValue();
     if (current_item->child(0) || value.isEmpty()) {
         return;
@@ -304,7 +304,6 @@ void ListenPort::changeRowTree() {
 
     QTreeWidgetItem *parent_item = current_item;
 
-    #include <QVector>
     QVector<QString> path_to_item;
     while (parent_item->parent()) {
         path_to_item.append(parent_item->parent()->text(0));
@@ -331,13 +330,22 @@ void ListenPort::changeRowTree() {
     }
     full_key.append(current_item->text(0));
 
-    QByteArray query = "set " + QByteArray(full_key.toStdString().c_str()) + ": " + QByteArray(value.toStdString().c_str());
-    QByteArray write_data = writeData(query);
-    if(!write_data.length()) {
-        QMessageBox::information(0, QObject::tr("Change param"), QObject::tr("Ошибка при изменении параметров"));
+    //словарь для измененных данных
+    changed_key.insert(full_key, value);
+}
+
+
+void ListenPort::writeChangeToDevice() {
+    openPort();
+
+    foreach (QString key, changed_key.keys() ) {
+        QString value = changed_key[key];
+        QByteArray query = "set " + QByteArray(key.toStdString().c_str()) + ":" + QByteArray(value.toStdString().c_str());
+        QByteArray data = writeData(query);
     }
 
-    qDebug() << path_to_item;
+    changed_key.clear();
+    closePort();
 }
 
 void ListenPort::addRowTree() { //добавляет запись в ту же строку, что и элемент

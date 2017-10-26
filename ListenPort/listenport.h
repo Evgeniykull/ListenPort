@@ -66,6 +66,7 @@ private slots:
     void getCatalog();
     void writeFileToDevice();
     void readFileFromDevice();
+    void writeChangeToDevice();
 
     void updateSettings();
     void updateInfo();
@@ -84,6 +85,8 @@ private:
     unsigned char answc;   // Код ответа
     int last_index;
     bool transfer_data = false; //если true, то запрет на передачу
+    int tab;
+    int byteOnPackage;
 
     void addValueToSettings();
     void setSavingParams();
@@ -97,8 +100,6 @@ private:
     QTreeWidgetItem * mRootItem;
     QJsonDocument mDocument;
     void generateTree(std::string json);
-    int tab;
-    int byteOnPackage;
 
     QMap<QString, QString> changed_key;
 };

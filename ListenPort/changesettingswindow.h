@@ -14,7 +14,6 @@ class ChangeSettingsWindow : public QWidget
 public:
     explicit ChangeSettingsWindow(QWidget *parent = 0);
     ~ChangeSettingsWindow();
-    QString getKey();
     QString getValue();
     bool isCancel();
 
@@ -28,7 +27,6 @@ private slots:
 
 private:
     Ui::ChangeSettingsWindow *ui;
-    QString key;
     QString value;
     bool cancel = true;
 };

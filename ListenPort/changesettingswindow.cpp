@@ -16,7 +16,6 @@ ChangeSettingsWindow::~ChangeSettingsWindow()
 }
 
 void ChangeSettingsWindow::onOkPress() {
-    key = ui->le_Key->text();
     value = ui->le_Value->text();
     cancel = false;
     pressedOkButton();
@@ -25,10 +24,6 @@ void ChangeSettingsWindow::onOkPress() {
 void ChangeSettingsWindow::onCancelPress() {
     cancel = true;
     pressedCancelButton();
-}
-
-QString ChangeSettingsWindow::getKey() {
-    return key;
 }
 
 QString ChangeSettingsWindow::getValue() {
