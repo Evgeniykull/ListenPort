@@ -29,12 +29,14 @@ SOURCES += main.cpp\
         listenport.cpp \
     jsonconvertor.cpp \
     changesettingswindow.cpp \
-    utils/catalogswrither.cpp
+    utils/catalogswrither.cpp \
+    treadworker.cpp
 
 HEADERS  += listenport.h \
     jsonconvertor.h \
     changesettingswindow.h \
-    utils/catalogswrither.h
+    utils/catalogswrither.h \
+    treadworker.h
 
 FORMS    += listenport.ui \
     changesettingswindow.ui

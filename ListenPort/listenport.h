@@ -41,6 +41,18 @@ private slots:
     void changePort(QString name);
     void openPort();
     void closePort();
+    // Функция получения данных из порта с учетом таймаутов
+    // Возвращает массив с данными нужной длины или пустой массив
+    // первый параметр - начальный байт пакета
+    // второй параметр - общее число байт пакета
+    QByteArray getPortData(char,int);
+    // Функция получения данных из порта с учетом таймаутов
+    // Возвращает массив с данными нужной длины или пустой массив
+    // параметр - общее число байт пакета
+    QByteArray getPortDataOnly(int);
+    // Выдает данные в порт
+    void putPortData(QByteArray tr_data);
+    // Обмен одной командой и получение ответа
     QByteArray writeData(QByteArray text);
     QByteArray analizeData(QByteArray data);
     void writePortSettings();//доработать
@@ -102,6 +114,9 @@ private:
     void generateTree(std::string json);
 
     QMap<QString, QString> changed_key;
+
+    const QByteArray SETTINGS = "Установки";
+    const QByteArray INFO = "Состояние";
 };
 
 #endif // LISTENPORT_H

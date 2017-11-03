@@ -16,6 +16,9 @@
 #include <QInputDialog>
 #include <QVector>
 
+#include <QThread>
+#include "treadworker.h"
+
 
 ListenPort::ListenPort(QWidget *parent) :
     QMainWindow(parent),
@@ -379,9 +382,9 @@ void ListenPort::delRowTree() {
 QTreeWidgetItem * ListenPort::load(const QJsonValue& value, QTreeWidgetItem* parent) {
     QTreeWidgetItem * rootItem = new QTreeWidgetItem(parent);
     if (tab == 1) {
-        rootItem->setText(0, "Установки");
+        rootItem->setText(0, SETTINGS);
     } else {
-        rootItem->setText(0, "Состояние");
+        rootItem->setText(0, INFO);
     }
 
     if ( value.isObject()) {
@@ -440,18 +443,12 @@ void ListenPort::onParamsClick() {
     last_index = 2;
     ui->tabWidget->setCurrentIndex(2);
     tab = 2;
-    if(ui->treeWidget_2->topLevelItemCount() <= 0) { //если пусто - обновить
-        updateInfo();
-    }
 }
 
 void ListenPort::onChangeParamsClick() {
     last_index = 1;
     ui->tabWidget->setCurrentIndex(1);
     tab = 1;
-    if(ui->treeWidget_2->topLevelItemCount() <= 0) { //если пусто - обновить
-        updateSettings();
-    }
 }
 
 void ListenPort::updateInfo() {
@@ -463,7 +460,7 @@ void ListenPort::updateInfo() {
     setToolTip("Идет обмен");
     setStatusTip("Идет обмен");
     QMessageBox::information(0, QObject::tr("Update Info"), QObject::tr("Пожалуйста подождите"));
-    QByteArray data = writeData("get Состояние");
+    QByteArray data = writeData("get " + INFO);
 
     if (!data.length()) {
         QMessageBox::information(0, QObject::tr("Update Info"), QObject::tr("Не удалось получить информацию от устройства"));
@@ -478,24 +475,46 @@ void ListenPort::updateInfo() {
 }
 
 void ListenPort::updateSettings() {
+    //попробовать без thread вызвать функцию
+    /*QByteArray answerFromThread;
+    treadWorker *worker = new treadWorker();
+    worker->setTransferParams("get " + SETTINGS,
+                              answerFromThread,
+                              port,
+                              ui->leAddres->text().toInt(),
+                              byteOnPackage
+                             );
+    QThread *workerThread = new QThread(this);
+    connect(workerThread, SIGNAL(started()), worker, SLOT(transferData()));
+    //connect(workerThread, SIGNAL(finished()), worker, SLOT(deleteLater()));
+    worker->moveToThread(workerThread);
+    workerThread->start();
+
+    while (!workerThread->isFinished() ||
+           QMessageBox::information(0, QObject::tr("Transfer data"), QObject::tr("Change transfer")) == QMessageBox::Ok
+           ) {
+        workerThread->wait();
+    }
+
+    workerThread->deleteLater();
+    */
+
     openPort();
     if (!port->isOpen()) {
         QMessageBox::information(0, QObject::tr("Can not write to device"), QObject::tr("Порт закрыт"));
         return;
     }
-    setToolTip("Идет обмен");
-    setStatusTip("Идет обмен");
-    QMessageBox::information(0, QObject::tr("Update Settings"), QObject::tr("Пожалуйста подождите"));
 
-    QByteArray data = writeData("get Установки");
+    QByteArray data = writeData("get " + SETTINGS);
     if (!data.length()) {
         QMessageBox::information(0, QObject::tr("Update Settings"), QObject::tr("Не удалось получить информацию от устройства"));
     }
 
+
     QByteArray analized_data = analizeData(data);
-    setStatusTip("Обмен завершен успешно");
     ui->txtBrwsSetting->setText(analized_data);
     QString data_string = dataToJson(analized_data);
+
 
     buildJsonTree(data_string);
     setToolTip("");
@@ -658,7 +677,7 @@ QByteArray ListenPort::analizeData(QByteArray data) {
                 continue;
             }
 
-            QByteArray new_data = writeData("get Установки." + substr);
+            QByteArray new_data = writeData("get " + SETTINGS + "." + substr);
             int fst_kv = new_data.indexOf("{");
             int last_kv = new_data.lastIndexOf("}");
             new_data = new_data.mid(fst_kv, last_kv - fst_kv + 1); //json object
@@ -679,7 +698,7 @@ QByteArray ListenPort::analizeData(QByteArray data) {
 
             QByteArray getted_data;
             for (int i = st1; i < ln; i++) {
-                QByteArray part = writeData("get Установки." + substr + "[" + QByteArray::number(i) + "]");
+                QByteArray part = writeData("get " + SETTINGS + "." + substr + "[" + QByteArray::number(i) + "]");
                 //обрезать answ...
                 int dv_pos = part.indexOf(":") + 1;
                 int end_pos = part.lastIndexOf("}");
@@ -715,35 +734,103 @@ QByteArray ListenPort::analizeData(QByteArray data) {
     return data;
 }
 
+QByteArray ListenPort::getPortDataOnly(int len) {
+  QByteArray qba;
+  int tosumm=0;  // Счетчик общего времени ожидания
+  qba.clear();
+  tosumm=0;
+  while ((qba.length()<len)&&(tosumm<40)) {    // Здесь - время межбайтового таймаута
+    int llen=qba.length();
+    int crn=len-llen;
+    QByteArray readed;
+    readed=port->read(crn);
+    if (readed.length()==0) {
+      port->waitForReadyRead(5);  // Ожидаем - если ничего не пришло ещё
+      tosumm+=5;
+    } else {
+      qba.append(readed);
+      tosumm=0;
+    }
+  }
+  qDebug() << "UART get data: " << qba.toHex();
+  return qba;
+}
+
+QByteArray ListenPort::getPortData(char prebyte,int len) {
+  QByteArray qba;
+  int tosumm=0;  // Счетчик общего времени ожидания
+  qba.clear();
+// Ожидаем начальный байт пакета
+  do {
+    port->waitForReadyRead(10);
+    qba.append(port->read(1));
+// Считываем по одному байту до тех пор, пока не найдем преамбулу
+// До преамбулы может быть мусор - его откидываем
+    if ((qba.length()<1)?(1):(qba[0]!=prebyte)) {
+      qba.clear();
+      tosumm+=10;
+    }
+  } while ((qba.length()==0)&&(tosumm<200)); // Здесь - время в миллисекундах максимального ожидания ответа
+  if (qba.length()!=0) { // Преамбула пришла - иначе ответа нет
+    tosumm=0;
+    while ((qba.length()<len)&&(tosumm<50)) {    // Здесь - время межбайтового таймаута
+      int llen=qba.length();
+      int crn=len-llen;
+      QByteArray readed;
+      readed=port->read(crn);
+      if (readed.length()==0) {
+        port->waitForReadyRead(5);
+        tosumm+=5;
+      } else {
+        qba.append(readed);
+        tosumm=0;
+      }
+    }
+  }
+  qDebug() << "UART get data: " << qba.toHex();
+  return qba;
+}
+
+void ListenPort::putPortData(QByteArray tr_data) {
+  qDebug() << "UART put data: " << tr_data.toHex();
+  port->flush();
+  port->write(tr_data);
+}
+
 //to do
 //и в этом
 QByteArray ListenPort::writeData(QByteArray text)
-{   
+{
+// fromAlex - это здесь делать некорректно, логика неправильная - и тем более возвращать пустую строку
+// лучше тогда проверку делать в самом начале процедур, использующих запись, и либо блокировать выполнение
+// до освобождения, либо выыдавать сообщение. Данную ветвь можно оставить только как резервную,
+// чтобы в случае оплошности не было диких глюков. Но тогда НУЖНО установить errcode - чтобы было понятно что случилось
     if (transfer_data) {
+        errcode=0x89;  // Коды ошибок нужно делать разные, чтобы было понятно что к чему (хотя бы нам, а лучше и пользователю)
         return "";
     } else {
         transfer_data = true;
     }
-
+// Перекодировали в CP1251 - хорошо
     QTextCodec *codec1 = QTextCodec::codecForName( "CP1251" );
     text = codec1->fromUnicode(QString(text));
-
-    //Подготавливаем данные
+//Подготавливаем данные - при пустой строке возвращаем пустую строку - логично
     QByteArray data = text;
     int data_len = data.length();
-    if (data_len == 0) {
-        return "";
-    }
-
+    if (data_len == 0) { return "";  }
+// Объявления переменных... надеюсь, современные компиляторы позволяют их делать в середине. Мне мой не позволяет
     int iter;
     unsigned char addres = ui->leAddres->text().toInt();
     unsigned char tranz_num = 0;
     uint data_pos = 0;
     uint max_pkg_len;
     unsigned char answ_kadr;
-    (data_len < 16) ? max_pkg_len = 16 : max_pkg_len = byteOnPackage;
-
+//    (data_len < 16) ? max_pkg_len = 16 : max_pkg_len = byteOnPackage;  - неожиданное применение, мне понравилось - но я привык к обычной записи
+// fromAlex - Вообще назначение данной конструкции не очень понятно - думаю, логичнее провреять byteOnPackage
+    if (byteOnPackage<16) max_pkg_len=16; else max_pkg_len = byteOnPackage;
+//
     while (data_len) {
+// Формируем один кадр
         buff[0] = 0xB5;
         buff[1] = addres;
         if (data_len <= max_pkg_len) { // Все данные помещаются в один пакет - он или единственный, или завершающий
@@ -759,8 +846,7 @@ QByteArray ListenPort::writeData(QByteArray text)
         }
         data_len -= iter;
         Calc_hCRC(buff, iter + 5);
-
-        //Цикл обмена одним файлом
+//Цикл обмена одним кадром
         errnum = 0;
         errcode = 0x88;
         answc = 0;
@@ -770,17 +856,9 @@ QByteArray ListenPort::writeData(QByteArray text)
             //отправка
             int size = buff[2] + 7;
             QByteArray tr_data = QByteArray((char *)buff, size);
-            port->write(tr_data);
-            if (port->waitForBytesWritten(200)) {
-                //прием файла
-                if (port->waitForReadyRead(100)) {
-                    rd_data.append(port->read(8));
-                    if (rd_data.length() < 8) {
-                        port->waitForReadyRead(100);
-                        rd_data.append(port->read(8 - rd_data.length()));
-                    }
-                }
-            }
+// Отправка-прием
+            putPortData(tr_data);
+            rd_data=getPortData(0x3A,8);
 
             if (rd_data.length()) {
                 if (Calc_hCRC((unsigned char*)rd_data.data(), 6)) {
@@ -833,36 +911,18 @@ QByteArray ListenPort::writeData(QByteArray text)
             buff[4]=(tranz_num + 1);
             Calc_hCRC(buff,5);
             QByteArray tr_data = QByteArray((char *)buff, 7);
-            //see writeData
-            port->write(tr_data);
-            port->waitForBytesWritten(20);
+            putPortData(tr_data);
         } else {
             // По какой-то причине нужно повторить запрос - ответ не пришел/поврежден или продолжение отправки
-            port->write((char*)answ, answlen);
-            port->waitForBytesWritten(20);
+            putPortData(QByteArray((char*)answ, answlen));
         }
         // Ожидаем прихода следующего кадра
         QByteArray rd_data;
-        if (port->waitForReadyRead(100)) {
-            rd_data.append(port->read(5));
-            if (rd_data.length() != 5) {
-                port->waitForReadyRead(100);
-                rd_data.append(port->read(5 - rd_data.length()));
-            }
-        }
+        rd_data=getPortData(0xB5,5);
         if (rd_data[0] == 0xB5) {
             data_len = abs(rd_data[2]);
             QByteArray rd_data1;
-            port->waitForReadyRead(100);
-            delay(1);
-            rd_data1.append(port->read(data_len + 2));
-            qDebug() << "data_len: " << data_len;
-            qDebug() << "rd_data1: " << rd_data1;
-            if (rd_data1.length() != data_len + 2) {
-                port->waitForReadyRead(100);
-                rd_data1.append(port->read(data_len + 2 - rd_data1.length()));
-                qDebug() << "rd_data1_con: " << rd_data1;
-            }
+            rd_data1=getPortDataOnly(data_len+2);
             if (rd_data1.length() == data_len + 2) {
                 //Кадр нормальной длинны получен
                 rd_data += rd_data1;
@@ -929,8 +989,7 @@ QByteArray ListenPort::writeData(QByteArray text)
         if (errcode) errnum++;
     } while ((errnum < 3) && (data_len >= 0) && not_end);
     if (answer == 0x51 || answer == 0x57) {
-        port->write((char*)answ);
-        port->waitForBytesWritten(20);
+        putPortData(QByteArray((char*)answ, answlen));
     }
     if (data_len > 0) {
         data[data_len++] = 0;
@@ -939,7 +998,6 @@ QByteArray ListenPort::writeData(QByteArray text)
         QString data_1 = codec->toUnicode(data);  //то, что пришло в формате читаемой строки
         return QByteArray(data_1.toStdString().c_str());
     }
-
     transfer_data = false;
     QMessageBox::information(0, QObject::tr("Write to device"),
             QObject::tr("Ошибка обмена"));
