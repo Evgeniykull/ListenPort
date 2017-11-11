@@ -22,9 +22,11 @@ public slots:
     void transferData();
     void stop();
 
+public:
+    QByteArray _resievedData;
+
 private:
     QByteArray _data;
-    QByteArray _resievedData;
     QSerialPort *port;
     unsigned char buff[255];
     unsigned char errnum;  // Количество ошибочных обменов

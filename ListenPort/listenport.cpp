@@ -28,13 +28,11 @@ ListenPort::ListenPort(QWidget *parent) :
     ui->leAddres->setValidator(new QIntValidator(0, 100000, this));
     port = new QSerialPort(this);
 
-    last_index = 1;
-
     addValueToSettings();
     connect(ui->cbBaudRate, SIGNAL(currentIndexChanged(int)), this, SLOT(checkCustomBaudRatePolicy(int)));
 
     connect(ui->actionExit, SIGNAL(triggered()), this, SLOT(close()));
-    connect(ui->actSettings, SIGNAL(triggered(bool)), this, SLOT(onSettingsClick(bool)));
+    connect(ui->actSettings, SIGNAL(triggered()), this, SLOT(onSettingsClick()));
 
     connect(ui->actParams, SIGNAL(triggered()), this, SLOT(onParamsClick()));
     connect(ui->actChangeParams, SIGNAL(triggered()), this, SLOT(onChangeParamsClick()));
@@ -75,6 +73,8 @@ ListenPort::~ListenPort()
 }
 
 void ListenPort::changeViewMod() {
+    treeViewMod = !treeViewMod;
+
     switch (tab) {
     case 1:
         tab = 3;
@@ -440,15 +440,17 @@ void ListenPort::buildJsonTree(QString json) {
 }
 
 void ListenPort::onParamsClick() {
-    last_index = 2;
-    ui->tabWidget->setCurrentIndex(2);
-    tab = 2;
+    tab = treeViewMod ? 4 : 2;
+    ui->tabWidget->setCurrentIndex(tab);
+    ui->actChangeParams->setChecked(false);
+    ui->actSettings->setChecked(false);
 }
 
 void ListenPort::onChangeParamsClick() {
-    last_index = 1;
-    ui->tabWidget->setCurrentIndex(1);
-    tab = 1;
+    tab = treeViewMod ? 3 : 1;
+    ui->tabWidget->setCurrentIndex(tab);
+    ui->actSettings->setChecked(false);
+    ui->actParams->setChecked(false);
 }
 
 void ListenPort::updateInfo() {
@@ -510,24 +512,22 @@ void ListenPort::updateSettings() {
         QMessageBox::information(0, QObject::tr("Update Settings"), QObject::tr("Не удалось получить информацию от устройства"));
     }
 
-
     QByteArray analized_data = analizeData(data);
     ui->txtBrwsSetting->setText(analized_data);
     QString data_string = dataToJson(analized_data);
-
 
     buildJsonTree(data_string);
     setToolTip("");
     closePort();
 }
 
-void ListenPort::onSettingsClick(bool enab) {
-    if (enab) {
-        getPortsInfo();
-        ui->tabWidget->setCurrentIndex(0);
-        return;
-    }
-    ui->tabWidget->setCurrentIndex(last_index);
+void ListenPort::onSettingsClick() {
+    ui->actChangeParams->setChecked(false);
+    ui->actParams->setChecked(false);
+
+    getPortsInfo();
+    ui->tabWidget->setCurrentIndex(0);
+    return;
 }
 
 //to do
@@ -543,7 +543,7 @@ void ListenPort::getPortSettingsFromFile() {
         QStringList list = line.split("=", QString::SkipEmptyParts);
         if (list.length() == 1) continue;
         if (list[0] == "ComPort" && ui->cbPortName->findText(list[1]) + 1) {
-            ui->cbPortName->setCurrentIndex(ui->cbPortName->findText(list[1]));
+            ui->cbPortName->setCurrentText(list[1]);
             continue;
         }
         if (list[0] == "BaudRate" && ui->cbBaudRate->findText(list[1]) + 1) {
@@ -642,6 +642,7 @@ void ListenPort::writePortSettings() {
     QFile file("settings.ini");
     file.open(QIODevice::ReadWrite);
 
+    qDebug() << SettingsPort.name ;
     QTextStream out(&file);
     out << "[Baseparams]" << "\n";
     out << "ComPort=" << SettingsPort.name << "\n";
@@ -712,19 +713,12 @@ QByteArray ListenPort::analizeData(QByteArray data) {
             getted_data_2.append("{");
             getted_data_2.append(getted_data);
             getted_data_2.append("}");
-            /*QString data_string = dataToJson(getted_data_2);
-            QFile fl("pw.txt");
-            fl.open(QIODevice::WriteOnly);
-            fl.write(data_string.toUtf8());
-            fl.close();*/
-
 
             //правильно добавить
             int pppos = data.indexOf("}", pos+1);
             QByteArray sss = data.mid(pppos+1);
 
             QByteArray firs = data.mid(0, pos+1);
-            //QByteArray sec = data.mid(pos+1);
             data = firs + ":" + getted_data_2 + sss;
             gtt_len = getted_data_2.length();
         }
@@ -797,8 +791,6 @@ void ListenPort::putPortData(QByteArray tr_data) {
   port->write(tr_data);
 }
 
-//to do
-//и в этом
 QByteArray ListenPort::writeData(QByteArray text)
 {
 // fromAlex - это здесь делать некорректно, логика неправильная - и тем более возвращать пустую строку
@@ -996,6 +988,7 @@ QByteArray ListenPort::writeData(QByteArray text)
         transfer_data = false;
         QTextCodec *codec = QTextCodec::codecForName("Windows-1251");
         QString data_1 = codec->toUnicode(data);  //то, что пришло в формате читаемой строки
+        qDebug() << data_1;
         return QByteArray(data_1.toStdString().c_str());
     }
     transfer_data = false;

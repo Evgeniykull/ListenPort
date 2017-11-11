@@ -24,9 +24,6 @@ struct Settings {
     QSerialPort::FlowControl flowControl;
 };
 
-
-//using byte = unsigned char;
-
 class ListenPort : public QMainWindow
 {
     Q_OBJECT
@@ -58,7 +55,7 @@ private slots:
     void writePortSettings();//доработать
     void checkCustomBaudRatePolicy(int idx);
 
-    void onSettingsClick(bool enab);
+    void onSettingsClick();
     void onParamsClick();
     void onChangeParamsClick();
 
@@ -95,9 +92,8 @@ private:
     unsigned char errnum;  // Количество ошибочных обменов
     unsigned char errcode; // Код ошибки обмена
     unsigned char answc;   // Код ответа
-    int last_index;
     bool transfer_data = false; //если true, то запрет на передачу
-    int tab;
+    int tab = 1;
     int byteOnPackage;
 
     void addValueToSettings();
@@ -117,6 +113,7 @@ private:
 
     const QByteArray SETTINGS = "Установки";
     const QByteArray INFO = "Состояние";
+    bool treeViewMod = false;
 };
 
 #endif // LISTENPORT_H

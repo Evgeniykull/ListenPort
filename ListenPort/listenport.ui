@@ -277,6 +277,7 @@
    <addaction name="actSettings"/>
    <addaction name="actChangeParams"/>
    <addaction name="actParams"/>
+   <addaction name="separator"/>
    <addaction name="actExchange"/>
   </widget>
   <widget class="QStatusBar" name="statusBar"/>
@@ -379,14 +380,23 @@
    </property>
   </action>
   <action name="actChangeParams">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="checked">
+    <bool>true</bool>
+   </property>
    <property name="text">
-    <string>Settings</string>
+    <string>Установки</string>
    </property>
    <property name="toolTip">
     <string>Редактирование параметров Settings</string>
    </property>
   </action>
   <action name="actParams">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
    <property name="text">
     <string>Info</string>
    </property>
@@ -395,6 +405,9 @@
    </property>
   </action>
   <action name="actExchange">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
    <property name="icon">
     <iconset resource="resource.qrc">
      <normaloff>:/pict/pict/exchange.png</normaloff>:/pict/pict/exchange.png</iconset>
