@@ -220,7 +220,7 @@ void catalogswrither::getCatalogByFile() {
 
     QFile file(file_path);
     if (!file.open(QIODevice::ReadOnly)) {
-        QMessageBox::information(0, QObject::tr("Unable to open file"), file.errorString());
+        QMessageBox::information(0, QObject::tr("Невозможно открыть файл"), file.errorString());
         return;
     }
     QByteArray file_data = file.readAll();

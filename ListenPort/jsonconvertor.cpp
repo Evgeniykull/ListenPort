@@ -2,7 +2,7 @@
 #include <QString>
 #include <QTextCodec>
 #include <vector>
-
+#include <QDebug>
 
 using namespace std;
 
@@ -46,7 +46,15 @@ QString JsonConvertor::dataToJson(QByteArray data) {
     data_string = data_string.right(data_string.length() - pos - 1);
     pos = data_string.lastIndexOf("}");
     data_string = data_string.left(pos) + "\0";
-    data_string.remove(0, 2);
+
+    //если 2я с начала \n, удаляем 2 символа, иначе 1
+    pos = data_string.indexOf('\n');
+    if (pos == 1) {
+        data_string.remove(0, 2);
+    } else {
+        data_string.remove(0, 1);
+    }
+
 
     //Добавление пробела после двоеточия
     data_string = addSpaseAfterChar(data_string, ":");
@@ -126,14 +134,17 @@ QString JsonConvertor::dataToJson(QByteArray data) {
         data_string.remove(n + 2, 1);
     }
 
+    qDebug() << data_string;
     return data_string;
 }
 
-void tree (QTreeWidgetItem * item, QString & data, bool is_mass = false) {
+void tree(QTreeWidgetItem * item, QString & data, bool is_mass = false) {
     if (!is_mass) {
         data += item->text(0);
         if (item->childCount() == 0) {
-            data +=  ": " + item->text(1) + "\n";
+            bool ok = 0;
+            int n = item->text(1).toDouble(&ok);
+            data += ok ? ":" + item->text(1) + "\n" : ":\"" + item->text(1) + "\"\n";
             return;
         }
     }
