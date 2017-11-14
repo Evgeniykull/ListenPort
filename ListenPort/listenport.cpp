@@ -62,6 +62,7 @@ ListenPort::ListenPort(QWidget *parent) :
 
     connect(ui->actExchange, SIGNAL(triggered(bool)), this, SLOT(changeViewMod()));
     connect(ui->actWriteChangeToDevice, SIGNAL(triggered(bool)), this, SLOT(writeChangeToDevice()));
+    connect(ui->cbPrecision, SIGNAL(currentIndexChanged(QString)), this, SLOT(changePrecision()));
 
     getPortsInfo();
     getPortSettingsFromFile();
@@ -95,6 +96,10 @@ void ListenPort::changeViewMod() {
     default:
         break;
     }
+}
+
+void ListenPort::changePrecision() {
+    precision = ui->cbPrecision->currentText().toInt();
 }
 
 void ListenPort::writeCatalog() {
@@ -403,7 +408,22 @@ QTreeWidgetItem * ListenPort::load(const QJsonValue& value, QTreeWidgetItem* par
             ++index;
         }
     } else {
-        rootItem->setText(1, value.toVariant().toString());
+        bool ok;
+        QString end_value = value.toVariant().toString();
+
+        end_value.toInt(&ok);
+        if (ok) {
+            rootItem->setText(1, end_value);
+            return rootItem;
+        }
+
+        double num_end_value = end_value.toDouble(&ok);
+        if (ok) {
+            rootItem->setText(1, QString::number(num_end_value, 'f', precision));
+        } else {
+            rootItem->setText(1, end_value);
+        }
+
     }
     return rootItem;
 }

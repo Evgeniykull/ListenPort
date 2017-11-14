@@ -81,6 +81,7 @@ private slots:
     void updateInfo();
 
     void changeViewMod();
+    void changePrecision();
 
 private:
     Ui::ListenPort *ui;
@@ -114,6 +115,7 @@ private:
     const QByteArray SETTINGS = "Установки";
     const QByteArray INFO = "Состояние";
     bool treeViewMod = false;
+    int precision = 2;
 };
 
 #endif // LISTENPORT_H

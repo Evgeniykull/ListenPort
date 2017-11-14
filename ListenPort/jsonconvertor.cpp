@@ -10,6 +10,11 @@ JsonConvertor::JsonConvertor()
 {
 }
 
+JsonConvertor::JsonConvertor(int prec)
+{
+    precision = prec;
+}
+
 QString JsonConvertor::jsonToData(QByteArray json) {
     return "";
 }
@@ -138,7 +143,7 @@ QString JsonConvertor::dataToJson(QByteArray data) {
     return data_string;
 }
 
-void tree(QTreeWidgetItem * item, QString & data, bool is_mass = false) {
+void JsonConvertor::tree(QTreeWidgetItem * item, QString & data, bool is_mass) {
     if (!is_mass) {
         data += item->text(0);
         if (item->childCount() == 0) {
@@ -154,8 +159,11 @@ void tree(QTreeWidgetItem * item, QString & data, bool is_mass = false) {
             //проверка на число ли это
             bool ok;
             double n = item->text(1).toDouble(&ok);
-            (ok) ? data += QString::number(n) + "," :
+            if (ok) {
+                data += QString::number(n, 'f', precision) + ",";
+            } else {
                 data += "\"" + item->text(1) + "\",";
+            }
             return;
         }
     }

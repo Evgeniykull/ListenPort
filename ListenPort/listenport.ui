@@ -34,13 +34,13 @@
         <item row="0" column="0">
          <widget class="QGroupBox" name="grBoxSettings">
           <property name="title">
-           <string>Settings</string>
+           <string>Настройки</string>
           </property>
           <layout class="QFormLayout" name="formLayout">
            <item row="0" column="0">
             <widget class="QLabel" name="lblPort">
              <property name="text">
-              <string>Port</string>
+              <string>Порт</string>
              </property>
             </widget>
            </item>
@@ -50,7 +50,7 @@
            <item row="1" column="0">
             <widget class="QLabel" name="lblBaudRate">
              <property name="text">
-              <string>Baud Rate</string>
+              <string>Скорость передачи</string>
              </property>
             </widget>
            </item>
@@ -60,7 +60,7 @@
            <item row="2" column="0">
             <widget class="QLabel" name="lblDataBits">
              <property name="text">
-              <string>Data Bits</string>
+              <string>Биты данных</string>
              </property>
             </widget>
            </item>
@@ -70,7 +70,7 @@
            <item row="3" column="0">
             <widget class="QLabel" name="lblPairity">
              <property name="text">
-              <string>Pairity</string>
+              <string>Паритет</string>
              </property>
             </widget>
            </item>
@@ -80,7 +80,7 @@
            <item row="4" column="0">
             <widget class="QLabel" name="lblStopBits">
              <property name="text">
-              <string>Stop Bits</string>
+              <string>Биты остановки</string>
              </property>
             </widget>
            </item>
@@ -90,7 +90,7 @@
            <item row="5" column="0">
             <widget class="QLabel" name="lblFlowControl">
              <property name="text">
-              <string>Flow Control</string>
+              <string>Управление потоком</string>
              </property>
             </widget>
            </item>
@@ -100,7 +100,7 @@
            <item row="6" column="0">
             <widget class="QLabel" name="lblAddres">
              <property name="text">
-              <string>Addres</string>
+              <string>Адрес</string>
              </property>
             </widget>
            </item>
@@ -120,17 +120,10 @@
              </property>
             </widget>
            </item>
-           <item row="8" column="0" colspan="2">
-            <widget class="QPushButton" name="pbSavePortSettings">
-             <property name="text">
-              <string>Save</string>
-             </property>
-            </widget>
-           </item>
            <item row="7" column="0">
             <widget class="QLabel" name="lblByteInPacket">
              <property name="text">
-              <string>Bite in packet</string>
+              <string>Бит в пакете</string>
              </property>
             </widget>
            </item>
@@ -139,6 +132,57 @@
              <property name="text">
               <string>100</string>
              </property>
+            </widget>
+           </item>
+           <item row="10" column="0" colspan="2">
+            <widget class="QPushButton" name="pbSavePortSettings">
+             <property name="text">
+              <string>Save</string>
+             </property>
+            </widget>
+           </item>
+           <item row="8" column="0">
+            <widget class="QLabel" name="lblPrecision">
+             <property name="text">
+              <string>Точность</string>
+             </property>
+            </widget>
+           </item>
+           <item row="8" column="1">
+            <widget class="QComboBox" name="cbPrecision">
+             <property name="currentText">
+              <string>2</string>
+             </property>
+             <item>
+              <property name="text">
+               <string>1</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>2</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>3</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>4</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>5</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>6</string>
+              </property>
+             </item>
             </widget>
            </item>
           </layout>
