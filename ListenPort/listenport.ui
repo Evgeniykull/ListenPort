@@ -151,7 +151,7 @@
            <item row="8" column="1">
             <widget class="QComboBox" name="cbPrecision">
              <property name="currentText">
-              <string>2</string>
+              <string>1</string>
              </property>
              <item>
               <property name="text">
@@ -266,6 +266,107 @@
         </item>
        </layout>
       </widget>
+      <widget class="QWidget" name="tab_6">
+       <attribute name="title">
+        <string>Access</string>
+       </attribute>
+       <layout class="QGridLayout" name="gridLayout_7">
+        <item row="0" column="1">
+         <widget class="QGroupBox" name="grBoxAccess">
+          <property name="title">
+           <string>Уровень доступа</string>
+          </property>
+          <widget class="QLabel" name="lblAccess">
+           <property name="geometry">
+            <rect>
+             <x>20</x>
+             <y>30</y>
+             <width>261</width>
+             <height>16</height>
+            </rect>
+           </property>
+           <property name="text">
+            <string>Выберите уровень доступа:</string>
+           </property>
+          </widget>
+          <widget class="QComboBox" name="cbAccess">
+           <property name="geometry">
+            <rect>
+             <x>20</x>
+             <y>60</y>
+             <width>581</width>
+             <height>22</height>
+            </rect>
+           </property>
+           <item>
+            <property name="text">
+             <string>Рабочий</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>Административный</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>Заводской</string>
+            </property>
+           </item>
+          </widget>
+          <widget class="QPushButton" name="pbAcess">
+           <property name="geometry">
+            <rect>
+             <x>620</x>
+             <y>60</y>
+             <width>75</width>
+             <height>23</height>
+            </rect>
+           </property>
+           <property name="text">
+            <string>Установить</string>
+           </property>
+          </widget>
+          <widget class="QLabel" name="lblAccessNow">
+           <property name="geometry">
+            <rect>
+             <x>20</x>
+             <y>150</y>
+             <width>261</width>
+             <height>16</height>
+            </rect>
+           </property>
+           <property name="text">
+            <string>Текущий уровень доступа:</string>
+           </property>
+          </widget>
+          <widget class="QTextEdit" name="teAccessNow">
+           <property name="geometry">
+            <rect>
+             <x>20</x>
+             <y>180</y>
+             <width>671</width>
+             <height>151</height>
+            </rect>
+           </property>
+          </widget>
+          <widget class="QPushButton" name="pbAceesNow">
+           <property name="geometry">
+            <rect>
+             <x>20</x>
+             <y>340</y>
+             <width>75</width>
+             <height>23</height>
+            </rect>
+           </property>
+           <property name="text">
+            <string>Обновить</string>
+           </property>
+          </widget>
+         </widget>
+        </item>
+       </layout>
+      </widget>
      </widget>
     </item>
    </layout>
@@ -323,6 +424,7 @@
    <addaction name="actParams"/>
    <addaction name="separator"/>
    <addaction name="actExchange"/>
+   <addaction name="actAccess"/>
   </widget>
   <widget class="QStatusBar" name="statusBar"/>
   <action name="actRead">
@@ -516,6 +618,14 @@
   <action name="actWriteChangeToDevice">
    <property name="text">
     <string>Записать изменения</string>
+   </property>
+  </action>
+  <action name="actAccess">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Доступ</string>
    </property>
   </action>
  </widget>

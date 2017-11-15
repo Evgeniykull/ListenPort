@@ -36,6 +36,7 @@ ListenPort::ListenPort(QWidget *parent) :
 
     connect(ui->actParams, SIGNAL(triggered()), this, SLOT(onParamsClick()));
     connect(ui->actChangeParams, SIGNAL(triggered()), this, SLOT(onChangeParamsClick()));
+    connect(ui->actAccess, SIGNAL(triggered()), this, SLOT(onAccessClick()));
     connect(ui->pbUpdateInfo, SIGNAL(clicked(bool)), this, SLOT(updateInfo()));
     connect(ui->pbUpdateSettings, SIGNAL(clicked(bool)), this, SLOT(updateSettings()));
 
@@ -63,6 +64,9 @@ ListenPort::ListenPort(QWidget *parent) :
     connect(ui->actExchange, SIGNAL(triggered(bool)), this, SLOT(changeViewMod()));
     connect(ui->actWriteChangeToDevice, SIGNAL(triggered(bool)), this, SLOT(writeChangeToDevice()));
     connect(ui->cbPrecision, SIGNAL(currentIndexChanged(QString)), this, SLOT(changePrecision()));
+
+    connect(ui->pbAcess, SIGNAL(clicked(bool)), this, SLOT(onChangeAccessClick()));
+    connect(ui->pbAceesNow, SIGNAL(clicked(bool)), this, SLOT(onAccessUpdateClick()));
 
     getPortsInfo();
     getPortSettingsFromFile();
@@ -96,6 +100,73 @@ void ListenPort::changeViewMod() {
     default:
         break;
     }
+}
+
+void ListenPort::onAccessClick() {
+    tab = 5;
+    ui->tabWidget->setCurrentIndex(tab);
+    ui->actParams->setChecked(false);
+    ui->actChangeParams->setChecked(false);
+    ui->actSettings->setChecked(false);
+}
+
+void ListenPort::onChangeAccessClick() {
+    openPort();
+    if (!port->isOpen()) {
+        QMessageBox::information(0, QObject::tr("Невозможно записать на устройство"), QObject::tr("Порт закрыт"));
+        return;
+    }
+
+    int acc_level = ui->cbAccess->currentIndex();
+    QByteArray req_acc_level = "ReqAccLevel:" + QByteArray::number(acc_level);
+    QByteArray alpassword = "ALPassword:";
+
+    if (acc_level > 0) {
+        bool ok;
+        QString password = QInputDialog::getText(0, "Изменение режима доступа", "Введите пароль:",
+                                                  QLineEdit::Normal, "", &ok);
+        alpassword += password.toUtf8();
+        if (!ok) {
+            return;
+        }
+    }
+
+    QByteArray req = "run AccessCmd:{\n" + req_acc_level + "\n";
+    if (acc_level) {
+        req += alpassword;
+    }
+    req += "}";
+
+    QByteArray req_data = writeData(req);
+    req_data = writeData("get AccessCmd");
+
+    //распарсить
+    //достать ALMessage и вывести
+    int pos = req_data.indexOf("ALMessage:");
+    QString answ_message = QString(req_data).mid(pos + 11);
+    pos = answ_message.indexOf('"');
+    answ_message = answ_message.mid(0, pos);
+
+    if (answ_message == "Ok") {
+        QMessageBox::information(0, QObject::tr("Изменение режима доступа"), QObject::tr("Режим был успешно изменен"));
+    } else {
+        QMessageBox::information(0, QObject::tr("Изменение режима доступа"), QString(req_data));
+    }
+
+    closePort();
+}
+
+void ListenPort::onAccessUpdateClick() {
+    openPort();
+    if (!port->isOpen()) {
+        QMessageBox::information(0, QObject::tr("Невозможно записать на устройство"), QObject::tr("Порт закрыт"));
+        return;
+    }
+
+    QByteArray req_data = writeData("get AccessCmd");
+    ui->teAccessNow->setText(QString(req_data));
+
+    closePort();
 }
 
 void ListenPort::changePrecision() {
@@ -464,6 +535,7 @@ void ListenPort::onParamsClick() {
     ui->tabWidget->setCurrentIndex(tab);
     ui->actChangeParams->setChecked(false);
     ui->actSettings->setChecked(false);
+    ui->actAccess->setChecked(false);
 }
 
 void ListenPort::onChangeParamsClick() {
@@ -471,6 +543,7 @@ void ListenPort::onChangeParamsClick() {
     ui->tabWidget->setCurrentIndex(tab);
     ui->actSettings->setChecked(false);
     ui->actParams->setChecked(false);
+    ui->actAccess->setChecked(false);
 }
 
 void ListenPort::updateInfo() {
@@ -561,6 +634,7 @@ void ListenPort::updateSettings() {
 void ListenPort::onSettingsClick() {
     ui->actChangeParams->setChecked(false);
     ui->actParams->setChecked(false);
+    ui->actAccess->setChecked(false);
 
     getPortsInfo();
     ui->tabWidget->setCurrentIndex(0);

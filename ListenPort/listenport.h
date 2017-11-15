@@ -82,6 +82,9 @@ private slots:
 
     void changeViewMod();
     void changePrecision();
+    void onAccessClick();
+    void onChangeAccessClick();
+    void onAccessUpdateClick();
 
 private:
     Ui::ListenPort *ui;
