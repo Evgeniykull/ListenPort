@@ -54,8 +54,10 @@ ListenPort::ListenPort(QWidget *parent) :
     connect(ui->treeWidget, SIGNAL(customContextMenuRequested(QPoint)), this, SLOT(prepareMenu(QPoint)));
     connect(ui->treeWidget, SIGNAL(itemDoubleClicked(QTreeWidgetItem*,int)), this, SLOT(changeRowTree()));
 
-    connect(ui->actSave, SIGNAL(triggered()), this, SLOT(saveInFile())); //save in file
-    connect(ui->actReadFormFile, SIGNAL(triggered()), this, SLOT(readFromFile())); //read from file
+    //connect(ui->actSave, SIGNAL(triggered()), this, SLOT(saveInFile())); //save in file
+    connect(ui->actWrite, SIGNAL(triggered()), this, SLOT(saveInFile())); //save in file
+    //connect(ui->actReadFormFile, SIGNAL(triggered()), this, SLOT(readFromFile())); //read from file
+    connect(ui->actRead, SIGNAL(triggered()), this, SLOT(readFromFile())); //read from file
     connect(ui->actWriteCatalog, SIGNAL(triggered()), this, SLOT(writeCatalog()));
     connect(ui->actGetCatalog, SIGNAL(triggered()), this, SLOT(getCatalog()));
     connect(ui->actWriteFileToDevice, SIGNAL(triggered()), this, SLOT(writeFileToDevice()));
@@ -63,6 +65,7 @@ ListenPort::ListenPort(QWidget *parent) :
 
     connect(ui->actExchange, SIGNAL(triggered(bool)), this, SLOT(changeViewMod()));
     connect(ui->actWriteChangeToDevice, SIGNAL(triggered(bool)), this, SLOT(writeChangeToDevice()));
+    connect(ui->pbWriteToDevice, SIGNAL(clicked(bool)), this, SLOT(writeChangeToDevice()));
     connect(ui->cbPrecision, SIGNAL(currentIndexChanged(QString)), this, SLOT(changePrecision()));
 
     connect(ui->pbAcess, SIGNAL(clicked(bool)), this, SLOT(onChangeAccessClick()));
@@ -117,7 +120,7 @@ void ListenPort::onChangeAccessClick() {
         return;
     }
 
-    int acc_level = ui->cbAccess->currentIndex();
+    int acc_level = ui->cbAccess->currentIndex() - 1;
     QByteArray req_acc_level = "ReqAccLevel:" + QByteArray::number(acc_level);
     QByteArray alpassword = "ALPassword:";
 
@@ -148,7 +151,7 @@ void ListenPort::onChangeAccessClick() {
     answ_message = answ_message.mid(0, pos);
 
     if (answ_message == "Ok") {
-        QMessageBox::information(0, QObject::tr("Изменение режима доступа"), QObject::tr("Режим был успешно изменен"));
+        //QMessageBox::information(0, QObject::tr("Изменение режима доступа"), QObject::tr("Режим был успешно изменен"));
     } else {
         QMessageBox::information(0, QObject::tr("Изменение режима доступа"), QString(req_data));
     }
@@ -164,8 +167,11 @@ void ListenPort::onAccessUpdateClick() {
     }
 
     QByteArray req_data = writeData("get AccessCmd");
-    ui->teAccessNow->setText(QString(req_data));
+    //ui->teAccessNow->setText(QString(req_data));
+    int pos = req_data.indexOf("CurAccLevel:");
+    QString answ_message = QString(req_data).mid(pos + 12, 1);
 
+    ui->cbAccess->setCurrentIndex(answ_message.toInt() + 1);
     closePort();
 }
 
@@ -536,6 +542,8 @@ void ListenPort::onParamsClick() {
     ui->actChangeParams->setChecked(false);
     ui->actSettings->setChecked(false);
     ui->actAccess->setChecked(false);
+    ui->actWrite->setDisabled(true);
+    ui->actRead->setDisabled(true);
 }
 
 void ListenPort::onChangeParamsClick() {
@@ -544,6 +552,8 @@ void ListenPort::onChangeParamsClick() {
     ui->actSettings->setChecked(false);
     ui->actParams->setChecked(false);
     ui->actAccess->setChecked(false);
+    ui->actWrite->setDisabled(false);
+    ui->actRead->setDisabled(false);
 }
 
 void ListenPort::updateInfo() {
@@ -635,6 +645,8 @@ void ListenPort::onSettingsClick() {
     ui->actChangeParams->setChecked(false);
     ui->actParams->setChecked(false);
     ui->actAccess->setChecked(false);
+    ui->actWrite->setDisabled(true);
+    ui->actRead->setDisabled(true);
 
     getPortsInfo();
     ui->tabWidget->setCurrentIndex(0);
