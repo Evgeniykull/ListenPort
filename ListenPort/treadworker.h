@@ -10,20 +10,20 @@ class treadWorker : public QObject
 public:
     treadWorker();
     void setTransferParams(QByteArray data,
-                           QByteArray &resievedData,
                            QSerialPort *device_port,
                            unsigned char dev_addres,
                            int dev_byteOnPackage);
 
 signals:
-    void finished();
+    void finished(QByteArray);
 
 public slots:
     void transferData();
     void stop();
 
 public:
-    QByteArray _resievedData;
+    QByteArray *_resievedData;
+    QByteArray aaa;
 
 private:
     QByteArray _data;
@@ -34,6 +34,10 @@ private:
     unsigned char answc;   // Код ответа
     unsigned char addres;
     int byteOnPackage;
+
+    void putPortData(QByteArray tr_data);
+    QByteArray getPortData(char prebyte,int len);
+    QByteArray getPortDataOnly(int len);
 };
 
 #endif // TREADWORKER_H

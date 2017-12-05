@@ -28,6 +28,10 @@ ListenPort::ListenPort(QWidget *parent) :
     ui->leAddres->setValidator(new QIntValidator(0, 100000, this));
     port = new QSerialPort(this);
 
+    msgBx.setText("Пожалуйста подождите");
+    msgBx.setStandardButtons(QMessageBox::Cancel);
+    msgBx.setModal(true);
+
     addValueToSettings();
     connect(ui->cbBaudRate, SIGNAL(currentIndexChanged(int)), this, SLOT(checkCustomBaudRatePolicy(int)));
 
@@ -150,9 +154,7 @@ void ListenPort::onChangeAccessClick() {
     pos = answ_message.indexOf('"');
     answ_message = answ_message.mid(0, pos);
 
-    if (answ_message == "Ok") {
-        //QMessageBox::information(0, QObject::tr("Изменение режима доступа"), QObject::tr("Режим был успешно изменен"));
-    } else {
+    if (answ_message != "Ok") {
         QMessageBox::information(0, QObject::tr("Изменение режима доступа"), QString(req_data));
     }
 
@@ -516,7 +518,6 @@ bool ListenPort::loadJson(const QString &json)
         }
         return true;
     }
-    QMessageBox::information(this, tr("Загрузка json"), "Невозможно преобразовать json в дерево");
     return false;
 }
 
@@ -557,7 +558,9 @@ void ListenPort::onChangeParamsClick() {
 }
 
 void ListenPort::updateInfo() {
-    openPort();
+    msgBx.show();
+    waitMessageShow("get " + INFO);
+    /*openPort();
     if (!port->isOpen()) {
         QMessageBox::information(0, QObject::tr("Невозможно записать в устройство"), QObject::tr("Порт закрыт"));
         return;
@@ -575,70 +578,79 @@ void ListenPort::updateInfo() {
     QString json = dataToJson(data);
     buildJsonTree(json);
     setToolTip("");
-    closePort();
+    closePort();*/
 }
 
-void ListenPort::updateSettings() {
-    //попробовать без thread вызвать функцию
-    /*QByteArray answerFromThread;
-    treadWorker *worker = new treadWorker();
-    worker->setTransferParams("get " + SETTINGS,
-                              answerFromThread,
-                              port,
-                              ui->leAddres->text().toInt(),
-                              byteOnPackage
-                             );
-    QThread *workerThread = new QThread(this);
-    connect(workerThread, SIGNAL(started()), worker, SLOT(transferData()));
-    //connect(workerThread, SIGNAL(finished()), worker, SLOT(deleteLater()));
-    worker->moveToThread(workerThread);
-    workerThread->start();
-
-    while (!workerThread->isFinished() ||
-           QMessageBox::information(0, QObject::tr("Transfer data"), QObject::tr("Change transfer")) == QMessageBox::Ok
-           ) {
-        workerThread->wait();
-    }
-
-    workerThread->deleteLater();
-    */
-
+void ListenPort::waitMessageShow(QByteArray data) {
     openPort();
     if (!port->isOpen()) {
         QMessageBox::information(0, QObject::tr("Невозможно записать в устройство"), QObject::tr("Порт закрыт"));
         return;
     }
 
-    QByteArray data = writeData("get " + SETTINGS);
-    if (!data.length()) {
-        QMessageBox::information(0, QObject::tr("Обновление установок"), QObject::tr("Не удалось получить информацию от устройства"));
-    }
+    QThread *thread = new QThread;
+    treadWorker *worker = new treadWorker();
+    worker->setTransferParams(data,
+                              port,
+                              ui->leAddres->text().toInt(),
+                              byteOnPackage
+                             );
 
-    QByteArray analized_data = analizeData(data);
-    ui->txtBrwsSetting->setText(analized_data);
-    QString data_string = dataToJson(analized_data);
+    worker->moveToThread(thread);
+
+    connect(thread, SIGNAL(started()), worker, SLOT(transferData()));
+    connect(worker, SIGNAL(finished(QByteArray)), this, SLOT(endTransmitData(QByteArray)));
+    //connect(worker, SIGNAL(finished(QByteArray)), worker, SLOT(deleteLater()));
+    //connect(thread, SIGNAL(finished()), thread, SLOT(deleteLater()));
+
+    thread->start();
+}
+
+void ListenPort::updateSettings() {
+    msgBx.show();
+    waitMessageShow("get " + SETTINGS);
+    /*openPort();
+
+    QMessageBox msgBx;
+    msgBx.setText("Пожалуйста подождите");
+    msgBx.setStandardButtons(QMessageBox::Cancel);
+    msgBx.setModal(true);
+    msgBx.show();
+
+
+    QThread *thread = new QThread;
+    treadWorker *worker = new treadWorker();
+    worker->setTransferParams("get " + SETTINGS,
+                              &answerFromThread,
+                              port,
+                              ui->leAddres->text().toInt(),
+                              byteOnPackage
+                             );
+
+    worker->moveToThread(thread);
+    connect(thread, SIGNAL(started()), worker, SLOT(transferData()));
+    connect(worker, SIGNAL(finished()), this, SLOT(endTransmitData()));
+    connect(worker, SIGNAL(finished()), worker, SLOT(deleteLater()));
+    connect(thread, SIGNAL(finished()), thread, SLOT(deleteLater()));
+
+    connect(thread, SIGNAL(finished()), &msgBx, SLOT(close));
+    thread->start();*/
+}
+
+void ListenPort::endTransmitData(QByteArray data) {
+    qDebug() << "aaa" << data;
+    port->close();
+    ui->txtBrwsInfo->setText(data);
+    /*if (!answerFromThread.length()) {
+        QMessageBox::information(0, QObject::tr("Обновление установок"), QObject::tr("Не удалось получить информацию от устройства"));
+    }*/
+
+    //QByteArray analized_data = analizeData(data);
+    //ui->txtBrwsSetting->setText(analized_data);
+    QString data_string = dataToJson(data);
 
     buildJsonTree(data_string);
-    setToolTip("");
-    closePort();
-
-    /*
-    QString fileName = QFileDialog::getSaveFileName(this,
-            tr("Сохранение настроек"), "",
-            tr("Все файлы (*)"));
-    if (fileName.isEmpty()) {
-        QMessageBox::information(0, QObject::tr("Сохранение в файл"), "Неверно введено имя файла");
-        return;
-    }
-
-    QFile file(fileName);
-    if (!file.open(QIODevice::WriteOnly)) {
-        QMessageBox::information(this, tr("Невозможно открыть файл"), file.errorString());
-        return;
-    }
-    file.write(analized_data);
-    file.close();
-    */
+    msgBx.close();
 }
 
 void ListenPort::onSettingsClick() {
@@ -765,7 +777,6 @@ void ListenPort::writePortSettings() {
     QFile file("settings.ini");
     file.open(QIODevice::ReadWrite);
 
-    qDebug() << SettingsPort.name ;
     QTextStream out(&file);
     out << "[Baseparams]" << "\n";
     out << "ComPort=" << SettingsPort.name << "\n";
@@ -782,6 +793,7 @@ void ListenPort::writePortSettings() {
 //to do
 //разобраться и по возможности переделать это
 QByteArray ListenPort::analizeData(QByteArray data) {
+    openPort();
     QByteArray substr;
     int gtt_len = 0;
     int pos = data.indexOf("]");
@@ -800,7 +812,6 @@ QByteArray ListenPort::analizeData(QByteArray data) {
                 pos = data.indexOf("]", pos+1+gtt_len);
                 continue;
             }
-
             QByteArray new_data = writeData("get " + SETTINGS + "." + substr);
             int fst_kv = new_data.indexOf("{");
             int last_kv = new_data.lastIndexOf("}");
@@ -848,6 +859,7 @@ QByteArray ListenPort::analizeData(QByteArray data) {
         pos = data.indexOf("]", pos+1+gtt_len);
         gtt_len = 0;
     }
+    port->close();
     return data;
 }
 
@@ -869,7 +881,6 @@ QByteArray ListenPort::getPortDataOnly(int len) {
       tosumm=0;
     }
   }
-  qDebug() << "UART get data: " << qba.toHex();
   return qba;
 }
 
@@ -904,12 +915,10 @@ QByteArray ListenPort::getPortData(char prebyte,int len) {
       }
     }
   }
-  qDebug() << "UART get data: " << qba.toHex();
   return qba;
 }
 
 void ListenPort::putPortData(QByteArray tr_data) {
-  qDebug() << "UART put data: " << tr_data.toHex();
   port->flush();
   port->write(tr_data);
 }
@@ -1111,7 +1120,6 @@ QByteArray ListenPort::writeData(QByteArray text)
         transfer_data = false;
         QTextCodec *codec = QTextCodec::codecForName("Windows-1251");
         QString data_1 = codec->toUnicode(data);  //то, что пришло в формате читаемой строки
-        qDebug() << data_1;
         return QByteArray(data_1.toStdString().c_str());
     }
     transfer_data = false;

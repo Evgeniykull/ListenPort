@@ -1,42 +1,103 @@
 #include "treadworker.h"
 #include "utils/catalogswrither.h"
 #include <QTextCodec>
-#include <QMessageBox>
 
 treadWorker::treadWorker()
 {
 }
 
-void treadWorker::setTransferParams(QByteArray data, QByteArray &resievedData, QSerialPort *device_port, unsigned char dev_addres, int dev_byteOnPackage) {
+void treadWorker::setTransferParams(QByteArray data, QSerialPort *device_port, unsigned char dev_addres, int dev_byteOnPackage) {
     _data = data;
-    _resievedData = resievedData;
     port = device_port;
     addres = dev_addres;
     byteOnPackage = dev_byteOnPackage;
 }
 
-void treadWorker::transferData() {
+QByteArray treadWorker::getPortDataOnly(int len) {
+  QByteArray qba;
+  int tosumm=0;  // Счетчик общего времени ожидания
+  qba.clear();
+  tosumm=0;
+  while ((qba.length()<len)&&(tosumm<40)) {    // Здесь - время межбайтового таймаута
+    int llen=qba.length();
+    int crn=len-llen;
+    QByteArray readed;
+    readed=port->read(crn);
+    if (readed.length()==0) {
+      port->waitForReadyRead(5);  // Ожидаем - если ничего не пришло ещё
+      tosumm+=5;
+    } else {
+      qba.append(readed);
+      tosumm=0;
+    }
+  }
+  return qba;
+}
+
+QByteArray treadWorker::getPortData(char prebyte,int len) {
+  QByteArray qba;
+  int tosumm=0;  // Счетчик общего времени ожидания
+  qba.clear();
+// Ожидаем начальный байт пакета
+  do {
+    port->waitForReadyRead(10);
+    qba.append(port->read(1));
+// Считываем по одному байту до тех пор, пока не найдем преамбулу
+// До преамбулы может быть мусор - его откидываем
+    if ((qba.length()<1)?(1):(qba[0]!=prebyte)) {
+      qba.clear();
+      tosumm+=10;
+    }
+  } while ((qba.length()==0)&&(tosumm<200)); // Здесь - время в миллисекундах максимального ожидания ответа
+  if (qba.length()!=0) { // Преамбула пришла - иначе ответа нет
+    tosumm=0;
+    while ((qba.length()<len)&&(tosumm<50)) {    // Здесь - время межбайтового таймаута
+      int llen=qba.length();
+      int crn=len-llen;
+      QByteArray readed;
+      readed=port->read(crn);
+      if (readed.length()==0) {
+        port->waitForReadyRead(5);
+        tosumm+=5;
+      } else {
+        qba.append(readed);
+        tosumm=0;
+      }
+    }
+  }
+  return qba;
+}
+
+void treadWorker::putPortData(QByteArray tr_data) {
+  port->flush();
+  port->write(tr_data);
+}
+
+void treadWorker::transferData()
+{
+// Перекодировали в CP1251 - хорошо
     QTextCodec *codec1 = QTextCodec::codecForName( "CP1251" );
     _data = codec1->fromUnicode(QString(_data));
-
-    //Подготавливаем данные
+//Подготавливаем данные - при пустой строке возвращаем пустую строку - логично
     QByteArray data = _data;
     int data_len = data.length();
     if (data_len == 0) {
-        _resievedData = "";
-        emit finished();
+        //*_resievedData = "error 1";
+        aaa = "error 1";
+        emit finished(aaa);
         return;
     }
-
+// Объявления переменных... надеюсь, современные компиляторы позволяют их делать в середине. Мне мой не позволяет
     int iter;
-    //unsigned char addres = ui->leAddres->text().toInt();
     unsigned char tranz_num = 0;
     uint data_pos = 0;
     uint max_pkg_len;
     unsigned char answ_kadr;
-    (data_len < 16) ? max_pkg_len = 16 : max_pkg_len = byteOnPackage;
-
+// fromAlex - Вообще назначение данной конструкции не очень понятно - думаю, логичнее провреять byteOnPackage
+    if (byteOnPackage<16) max_pkg_len=16; else max_pkg_len = byteOnPackage;
+//
     while (data_len) {
+// Формируем один кадр
         buff[0] = 0xB5;
         buff[1] = addres;
         if (data_len <= max_pkg_len) { // Все данные помещаются в один пакет - он или единственный, или завершающий
@@ -52,8 +113,7 @@ void treadWorker::transferData() {
         }
         data_len -= iter;
         Calc_hCRC(buff, iter + 5);
-
-        //Цикл обмена одним файлом
+//Цикл обмена одним кадром
         errnum = 0;
         errcode = 0x88;
         answc = 0;
@@ -63,17 +123,9 @@ void treadWorker::transferData() {
             //отправка
             int size = buff[2] + 7;
             QByteArray tr_data = QByteArray((char *)buff, size);
-            port->write(tr_data);
-            if (port->waitForBytesWritten(200)) {
-                //прием файла
-                if (port->waitForReadyRead(100)) {
-                    rd_data.append(port->read(8));
-                    if (rd_data.length() < 8) {
-                        port->waitForReadyRead(100);
-                        rd_data.append(port->read(8 - rd_data.length()));
-                    }
-                }
-            }
+// Отправка-прием
+            putPortData(tr_data);
+            rd_data=getPortData(0x3A,8);
 
             if (rd_data.length()) {
                 if (Calc_hCRC((unsigned char*)rd_data.data(), 6)) {
@@ -93,10 +145,9 @@ void treadWorker::transferData() {
             if (errcode >= 0x80 && errcode != 0x88) break;
         } while (errnum < 3 && errcode != 0);
         if (errcode) {
-            QMessageBox::information(0, QObject::tr("Can not write to device"),
-                    "Обмен завершен с ошибкой 0x" + QString("%1").arg(errcode, 0, 16).toUpper());
-            _resievedData = "";
-            emit finished();
+            //*_resievedData = "error 2";
+            aaa = "error 2";
+            emit finished(aaa);
             return;
         }
         //Обмен завершен успешно
@@ -127,36 +178,20 @@ void treadWorker::transferData() {
             buff[4]=(tranz_num + 1);
             Calc_hCRC(buff,5);
             QByteArray tr_data = QByteArray((char *)buff, 7);
-            //see writeData
-            port->write(tr_data);
-            port->waitForBytesWritten(20);
+            putPortData(tr_data);
         } else {
             // По какой-то причине нужно повторить запрос - ответ не пришел/поврежден или продолжение отправки
-            port->write((char*)answ, answlen);
-            port->waitForBytesWritten(20);
+            putPortData(QByteArray((char*)answ, answlen));
+            //*_resievedData = "\n Resive 1 \n";
+            aaa = "\n Resive 1 \n";
         }
         // Ожидаем прихода следующего кадра
         QByteArray rd_data;
-        if (port->waitForReadyRead(100)) {
-            rd_data.append(port->read(5));
-            if (rd_data.length() != 5) {
-                port->waitForReadyRead(100);
-                rd_data.append(port->read(5 - rd_data.length()));
-            }
-        }
+        rd_data=getPortData(0xB5,5);
         if (rd_data[0] == 0xB5) {
             data_len = abs(rd_data[2]);
             QByteArray rd_data1;
-            port->waitForReadyRead(100);
-            delay(1);
-            rd_data1.append(port->read(data_len + 2));
-            //qDebug() << "data_len: " << data_len;
-            //qDebug() << "rd_data1: " << rd_data1;
-            if (rd_data1.length() != data_len + 2) {
-                port->waitForReadyRead(100);
-                rd_data1.append(port->read(data_len + 2 - rd_data1.length()));
-                //qDebug() << "rd_data1_con: " << rd_data1;
-            }
+            rd_data1=getPortDataOnly(data_len+2);
             if (rd_data1.length() == data_len + 2) {
                 //Кадр нормальной длинны получен
                 rd_data += rd_data1;
@@ -180,10 +215,12 @@ void treadWorker::transferData() {
                                     not_end = false;
                                     break;
                                 case (0x81): // Начало приема сообщения
+                                    //*_resievedData = "Start \n";
                                     data_pos ? answer = 0x57 : answer = 0x50;
                                     for (uint n = 0; n < data_len; n++) data[data_pos++] = rd_data[5 + n];
                                     break;
                                 case (0x82): // Продолжение приема сообщения
+                                    //*_resievedData = "Cont \n";
                                     if (data_pos) {
                                         answer = 0x50;
                                         for (uint n = 0; n < data_len; n++) data[data_pos++] = rd_data[5 + n];
@@ -193,6 +230,7 @@ void treadWorker::transferData() {
                                     }
                                     break;
                                 case (0x83):  // Окончание приема сообщения
+                                    //*_resievedData = "End \n";
                                     if (data_pos) {
                                         answer=0x51;
                                         for (uint n = 0;n < data_len; n++) data[data_pos++]=rd_data[5 + n];
@@ -203,7 +241,9 @@ void treadWorker::transferData() {
                                     }
                                     not_end = false;
                                     break;
-                                default: answer = 0x83;
+                                default:
+                                    answer = 0x83;
+                                    //*_resievedData = "Default \n";
                             }
                             answ[0]=0x3A;
                             answ[1]=rd_data[1];
@@ -223,22 +263,20 @@ void treadWorker::transferData() {
         if (errcode) errnum++;
     } while ((errnum < 3) && (data_len >= 0) && not_end);
     if (answer == 0x51 || answer == 0x57) {
-        port->write((char*)answ);
-        port->waitForBytesWritten(20);
+        putPortData(QByteArray((char*)answ, answlen));
     }
     if (data_len > 0) {
         data[data_len++] = 0;
         QTextCodec *codec = QTextCodec::codecForName("Windows-1251");
         QString data_1 = codec->toUnicode(data);  //то, что пришло в формате читаемой строки
-        _resievedData = QByteArray(data_1.toStdString().c_str());
-        emit finished();
+        //*_resievedData = QByteArray(data_1.toStdString().c_str());
+        aaa = QByteArray(data_1.toStdString().c_str());
+        emit finished(aaa);
         return;
     }
-
-    /*QMessageBox::information(0, QObject::tr("Write to device"),
-            QObject::tr("Ошибка обмена"));*/
-    _resievedData = "";
-    emit finished();
+    //*_resievedData = QByteArray("3!!") + errcode;
+    aaa = QByteArray("3!!") + errcode;
+    emit finished(aaa);
 }
 
 void treadWorker::stop() {

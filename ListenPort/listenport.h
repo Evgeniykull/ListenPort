@@ -8,6 +8,7 @@
 #include <QTreeWidgetItem>
 #include <QJsonDocument>
 #include <QMap>
+#include <QMessageBox>
 #include "changesettingswindow.h"
 #include "utils/catalogswrither.h"
 
@@ -32,6 +33,7 @@ public:
     explicit ListenPort(QWidget *parent = 0);
     ~ListenPort();
     Settings SettingsPort;
+    void waitMessageShow(QByteArray);
 
 private slots:
     void getPortsInfo();
@@ -86,6 +88,8 @@ private slots:
     void onChangeAccessClick();
     void onAccessUpdateClick();
 
+    void endTransmitData(QByteArray);
+
 private:
     Ui::ListenPort *ui;
     QSerialPort *port;
@@ -119,6 +123,9 @@ private:
     const QByteArray INFO = "Состояние";
     bool treeViewMod = false;
     int precision = 2;
+
+    QByteArray answerFromThread;
+    QMessageBox msgBx;
 };
 
 #endif // LISTENPORT_H
